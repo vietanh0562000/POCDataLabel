@@ -1,0 +1,112 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.1'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'nu.studer.jooq' version '9.0'
+}
+
+group = 'com.poc'
+version = '0.0.1-SNAPSHOT'
+description = 'Demo project for Spring Boot'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Override Spring Boot's JOOQ version to match the plugin version
+ext['jooq.version'] = '3.19.1'
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    
+    implementation 'org.springframework.boot:spring-boot-starter-jooq'
+
+    compileOnly 'org.projectlombok:lombok'
+    
+    runtimeOnly 'org.postgresql:postgresql'
+    
+    jooqGenerator 'org.postgresql:postgresql'
+
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// TimescaleDB (PostgreSQL) configuration from environment variables or gradle.properties
+// TimescaleDB uses the PostgreSQL driver, so standard PostgreSQL connection settings work
+def dbHost = findProperty('db.host') ?: System.getenv('DB_HOST') ?: 'localhost'
+def dbPort = findProperty('db.port') ?: System.getenv('DB_PORT') ?: '5432'
+def dbName = findProperty('db.name') ?: System.getenv('DB_NAME') ?: 'postgres'
+def dbUser = findProperty('db.user') ?: System.getenv('DB_USER') ?: 'postgres'
+def dbPassword = findProperty('db.password') ?: System.getenv('DB_PASSWORD') ?: 'password'
+
+jooq {
+    version = '3.19.1'
+
+    configurations {
+        main {
+            generateSchemaSourceOnCompilation = true
+
+            generationTool {
+                logging = org.jooq.meta.jaxb.Logging.WARN
+                
+                jdbc {
+                    driver = 'org.postgresql.Driver'
+                    url = "jdbc:postgresql://${dbHost}:${dbPort}/${dbName}"
+                    user = dbUser
+                    password = dbPassword
+                }
+
+                generator {
+                    name = 'org.jooq.codegen.DefaultGenerator'
+                    
+                    database {
+                        name = 'org.jooq.meta.postgres.PostgresDatabase' 
+                        
+                        inputSchema = 'public' 
+                        
+                        excludes = 'databasechangelog, databasechangeloglock' 
+                    }
+
+                    target {
+                        packageName = 'com.poc.jooq.generated'
+                        
+                        directory = 'build/generated-src/jooq/main'
+                    }
+                    
+                    generate {
+                        deprecated = false
+                        records = true
+                        pojos = true
+                        fluentSetters = true
+                    }
+                }
+            }
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs += 'build/generated-src/jooq/main'
+        }
+    }
+}
