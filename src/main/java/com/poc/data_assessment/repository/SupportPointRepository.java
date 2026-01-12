@@ -1,6 +1,8 @@
 package com.poc.data_assessment.repository;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -41,11 +43,27 @@ public class SupportPointRepository {
             .fetch();
     }
 
+    public List<SupportPointRecord> findAllSupportPointsByDateAndDeId(LocalDate date, Long deId) {
+        Instant startOfDay = date.atStartOfDay().toInstant(ZoneOffset.UTC);
+        Instant endOfDay = date.atStartOfDay().plusDays(1).minusSeconds(1).toInstant(ZoneOffset.UTC);
+        return dsl.selectFrom(SUPPORT_POINT)
+            .where(SUPPORT_POINT.CREATED_AT.between(OffsetDateTime.ofInstant(startOfDay, ZoneOffset.UTC), OffsetDateTime.ofInstant(endOfDay, ZoneOffset.UTC)))
+            .and(SUPPORT_POINT.DE_ID.eq(deId))
+            .fetch();
+    }
+
     /**
      * Get all support points (without date filter)
      */
     public List<SupportPointRecord> findAllSupportPoints() {
         return dsl.selectFrom(SUPPORT_POINT)
             .fetch();
+    }
+
+    public void saveAll(List<SupportPointRecord> supportPoints) {
+        if (supportPoints.isEmpty()) {
+            return;
+        }
+        dsl.batchStore(supportPoints).execute();
     }
 } 
