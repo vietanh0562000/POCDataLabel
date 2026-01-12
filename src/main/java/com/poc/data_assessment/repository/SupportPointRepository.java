@@ -66,4 +66,15 @@ public class SupportPointRepository {
         }
         dsl.batchStore(supportPoints).execute();
     }
+
+    /**
+     * Get all distinct DE IDs from support points
+     */
+    public List<Long> findAllDistinctDeIds() {
+        return dsl.selectDistinct(SUPPORT_POINT.DE_ID)
+            .from(SUPPORT_POINT)
+            .where(SUPPORT_POINT.DE_ID.isNotNull())
+            .orderBy(SUPPORT_POINT.DE_ID)
+            .fetch(SUPPORT_POINT.DE_ID);
+    }
 } 
