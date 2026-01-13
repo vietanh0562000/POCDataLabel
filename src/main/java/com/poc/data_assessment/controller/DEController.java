@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.poc.data_assessment.dto.SupportPointDTO;
+import com.poc.data_assessment.service.CreateIndexesService;
 import com.poc.data_assessment.service.EvaluateAllDEsUseCase;
 import com.poc.data_assessment.service.EvaluatingDEDataUseCase;
 import com.poc.data_assessment.service.GetSupportPointUseCase;
@@ -33,7 +34,7 @@ public class DEController {
     private final EvaluateAllDEsUseCase evaluateAllDEsUseCase;
     private final GetSupportPointUseCase getSupportPointUseCase;
     private final InsertDEsService insertDEsService;
-
+   
     @PatchMapping("/{id}/evaluate")
     public ResponseEntity<Void> evaluate(@PathVariable Long id, @RequestParam LocalDate date) {
         evaluatingDEDataUseCase.execute(date, id);

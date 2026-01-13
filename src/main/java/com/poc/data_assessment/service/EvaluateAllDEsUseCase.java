@@ -27,8 +27,8 @@ public class EvaluateAllDEsUseCase {
     private final SupportPointRepository supportPointRepository;
     private final EvaluatingDEDataUseCase evaluatingDEDataUseCase;
     
-    private static final int BATCH_SIZE = 100; // Process 100 DEs at a time
-    private static final int THREAD_POOL_SIZE = 10; // Parallel threads for processing
+    private static final int BATCH_SIZE = 2000; // Process 2000 DEs at a time (larger batches = fewer queries)
+    private static final int THREAD_POOL_SIZE = 10; // Reduced threads since we're doing larger batches
 
     /**
      * Evaluate data for all DEs for a given date
@@ -44,12 +44,37 @@ public class EvaluateAllDEsUseCase {
         
         log.info("Starting to evaluate data for {} DEs on date {}", targetDeIds.size(), date);
         
+        long startTime = System.currentTimeMillis();
+        
+        // Try single bulk update for ALL support points on the date (fastest - no DE filtering)
+        try {
+            log.info("Attempting single bulk update for all support points on date {}...", date);
+            int updated = supportPointRepository.bulkUpdateStatusByDate(date);
+            long totalTime = System.currentTimeMillis() - startTime;
+            log.info("Completed evaluating data for all support points on date {}. Updated {} records. Total time: {} seconds",
+                date, updated, totalTime / 1000.0);
+            return;
+        } catch (Exception e) {
+            log.warn("Single bulk update failed, trying with DE list: {}", e.getMessage());
+        }
+        
+        // Try single bulk update with DE list
+        try {
+            log.info("Attempting single bulk update for {} DEs...", targetDeIds.size());
+            int updated = supportPointRepository.bulkUpdateStatusByDateAndDeIds(date, targetDeIds);
+            long totalTime = System.currentTimeMillis() - startTime;
+            log.info("Completed evaluating data for {} DEs in single bulk update. Updated {} records. Total time: {} seconds",
+                targetDeIds.size(), updated, totalTime / 1000.0);
+            return;
+        } catch (Exception e) {
+            log.warn("Single bulk update with DE list failed, falling back to batched processing: {}", e.getMessage());
+        }
+        
+        // Fallback to batched processing if single update fails (e.g., too many DEs)
         ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
         AtomicInteger processedCount = new AtomicInteger(0);
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger failureCount = new AtomicInteger(0);
-        
-        long startTime = System.currentTimeMillis();
         
         // Process in batches
         List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -116,18 +141,30 @@ public class EvaluateAllDEsUseCase {
                              AtomicInteger processedCount, 
                              AtomicInteger successCount, 
                              AtomicInteger failureCount) {
-        for (Long deId : deIds) {
-            try {
-                evaluatingDEDataUseCase.execute(date, deId);
-                successCount.incrementAndGet();
-                
-                int processed = processedCount.incrementAndGet();
-                if (processed % 1000 == 0) {
-                    log.info("Progress: {}/{} DEs evaluated", processed, deIds.size());
+        try {
+            // Process entire batch at once instead of one DE at a time
+            evaluatingDEDataUseCase.executeBatch(date, deIds);
+            
+            int batchSize = deIds.size();
+            successCount.addAndGet(batchSize);
+            int processed = processedCount.addAndGet(batchSize);
+            
+            if (processed % 1000 == 0 || processed % 5000 == 0) {
+                log.info("Progress: {} DEs evaluated (last batch: {} DEs)", processed, batchSize);
+            }
+        } catch (Exception e) {
+            failureCount.addAndGet(deIds.size());
+            log.error("Failed to evaluate batch of {} DEs: {}", deIds.size(), e.getMessage());
+            // Fallback: try individual DEs if batch fails
+            log.warn("Falling back to individual DE evaluation for batch");
+            for (Long deId : deIds) {
+                try {
+                    evaluatingDEDataUseCase.execute(date, deId);
+                    successCount.incrementAndGet();
+                    failureCount.decrementAndGet();
+                } catch (Exception ex) {
+                    log.error("Failed to evaluate DE {}: {}", deId, ex.getMessage());
                 }
-            } catch (Exception e) {
-                failureCount.incrementAndGet();
-                log.error("Failed to evaluate DE {}: {}", deId, e.getMessage());
             }
         }
     }
