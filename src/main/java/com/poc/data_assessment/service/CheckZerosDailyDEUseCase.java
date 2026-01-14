@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UpdateDailyLineChartDEUseCase {
+public class CheckZerosDailyDEUseCase {
     private static final Duration EXPECTED_INTERVAL = Duration.ofMinutes(15);
     
     private final DailyLineChartDERepository dailyLineChartDERepository;

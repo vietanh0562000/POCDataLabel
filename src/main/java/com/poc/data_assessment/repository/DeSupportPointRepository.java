@@ -21,6 +21,12 @@ public class DeSupportPointRepository {
         return dsl.selectFrom(DE_SUPPORT_POINT_15M).fetch();
     }
 
+    public List<DeSupportPoint_15mRecord> findAllDeSupportPointsByMqId(String mqId) {
+        return dsl.selectFrom(DE_SUPPORT_POINT_15M)
+            .where(DE_SUPPORT_POINT_15M.MQ_ID.eq(mqId))
+            .fetch();
+    }
+
     public List<DeSupportPoint_15mRecord> findAllDeSupportPointsByDateAndPermanentId(LocalDate date, String permanentId) {
         return dsl.selectFrom(DE_SUPPORT_POINT_15M)
             .where(DE_SUPPORT_POINT_15M.START_TIME.between(date.atStartOfDay(), date.atStartOfDay().plusDays(1).minusSeconds(1)))

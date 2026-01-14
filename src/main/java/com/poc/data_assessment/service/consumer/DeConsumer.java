@@ -7,7 +7,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 
 import com.poc.data_assessment.common.DataConst;
 import com.poc.data_assessment.service.UpdateDESupportPointUseCase;
-import com.poc.data_assessment.service.UpdateDailyLineChartDEUseCase;
+import com.poc.data_assessment.service.CheckZerosDailyDEUseCase;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 public class DeConsumer{
 
     private final UpdateDESupportPointUseCase updateDESupportPointUseCase;
-    private final UpdateDailyLineChartDEUseCase updateDailyLineChartDEUseCase;
+    private final CheckZerosDailyDEUseCase updateDailyLineChartDEUseCase;
 
     @KafkaListener(topics = "gap.traffic-data.short-term-data-ingested", containerFactory = "updateDeEventListenerFactory")
     public void consume(UpdateDeEvent updateDeEvent) {
