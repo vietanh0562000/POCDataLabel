@@ -5,21 +5,21 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.poc.data_assessment.dto.SupportPointDTO;
-import com.poc.data_assessment.repository.SupportPointRepository;
-import com.poc.jooq.generated.tables.records.SupportPointRecord;
+import com.poc.data_assessment.dto.DeSupportPointDTO;
+import com.poc.data_assessment.repository.DeSupportPointRepository;
+import com.poc.jooq.generated.tables.records.DeSupportPoint_15mRecord;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class GetAllSupportPointUseCase {
-    private final SupportPointRepository supportPointRepository;
+    private final DeSupportPointRepository deSupportPointRepository;
 
-    public List<SupportPointDTO> execute() {
-        List<SupportPointRecord> supportPoints = supportPointRepository.findAllSupportPoints();
-        return supportPoints.stream()
-            .map(SupportPointDTO::from)
+    public List<DeSupportPointDTO> execute() {
+        List<DeSupportPoint_15mRecord> deSupportPoints = deSupportPointRepository.findAllDeSupportPoints();
+        return deSupportPoints.stream()
+            .map(DeSupportPointDTO::from)
             .collect(Collectors.toList());
     }
 }

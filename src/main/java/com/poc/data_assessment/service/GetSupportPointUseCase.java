@@ -17,8 +17,8 @@ import lombok.RequiredArgsConstructor;
 public class GetSupportPointUseCase {
     private final DeSupportPointRepository deSupportPointRepository;
 
-    public List<DeSupportPointDTO> execute(LocalDate date, Long id) {
-        List<DeSupportPoint_15mRecord> deSupportPoints = deSupportPointRepository.findAllDeSupportPointsByDateAndDeId(date, deId);
+    public List<DeSupportPointDTO> execute(LocalDate date, String permanentId) {
+        List<DeSupportPoint_15mRecord> deSupportPoints = deSupportPointRepository.findAllDeSupportPointsByDateAndPermanentId(date, permanentId);
         return deSupportPoints.stream()
             .map(DeSupportPointDTO::from)
             .collect(Collectors.toList());

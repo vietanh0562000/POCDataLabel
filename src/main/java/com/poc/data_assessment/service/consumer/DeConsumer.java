@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.kafka.annotation.KafkaListener;
 
+import com.poc.data_assessment.service.UpdateDESupportPointUseCase;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -15,9 +17,12 @@ import lombok.RequiredArgsConstructor;
 )
 public class DeConsumer{
 
+    private final UpdateDESupportPointUseCase updateDESupportPointUseCase;
+
     @KafkaListener(topics = "gap.traffic-data.short-term-data-ingested", containerFactory = "updateDeEventListenerFactory")
     public void consume(UpdateDeEvent updateDeEvent) {
         System.out.println("Consumed message: " + updateDeEvent.permanentId() + " " + updateDeEvent.timeBucket());
+        updateDESupportPointUseCase.execute(updateDeEvent);
     }
     
 }
