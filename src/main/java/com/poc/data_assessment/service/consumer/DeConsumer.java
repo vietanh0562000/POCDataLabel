@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 )
 public class DeConsumer{
 
-    @KafkaListener(topics = "de-topic", containerFactory = "updateDeEventListenerFactory")
+    @KafkaListener(topics = "gap.traffic-data.short-term-data-ingested", containerFactory = "updateDeEventListenerFactory")
     public void consume(UpdateDeEvent updateDeEvent) {
         System.out.println("Consumed message: " + updateDeEvent.permanentId() + " " + updateDeEvent.timeBucket());
     }

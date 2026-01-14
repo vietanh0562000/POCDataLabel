@@ -3,5 +3,17 @@ package com.poc.data_assessment.enums;
 public enum SupportPointStatus {
     COMPLETED,
     MISSING,
-    IMPLAUSIBLE
+    IMPLAUSIBLE;
+
+    public static SupportPointStatus fromValue(Short value) {
+        if (value == null) {
+            return null;
+        }
+        return switch (value) {
+            case 0 -> COMPLETED;
+            case 1 -> MISSING;
+            case 2 -> IMPLAUSIBLE;
+            default -> throw new IllegalArgumentException("Invalid support point status value: " + value);
+        };
+    }
 }

@@ -38,6 +38,8 @@ dependencies {
 
     implementation 'org.apache.kafka:kafka-clients'
 
+    implementation 'org.flywaydb:flyway-core'
+
     compileOnly 'org.projectlombok:lombok'
     
     runtimeOnly 'org.postgresql:postgresql'
