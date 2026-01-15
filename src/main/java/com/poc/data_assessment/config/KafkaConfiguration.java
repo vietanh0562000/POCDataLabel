@@ -12,7 +12,7 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
-import com.poc.data_assessment.dto.UpdateDeEvent;
+import com.poc.data_assessment.application.dto.UpdateDeEvent;
 
 @Configuration
 public class KafkaConfiguration {
