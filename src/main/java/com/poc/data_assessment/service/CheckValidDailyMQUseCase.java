@@ -60,6 +60,7 @@ public class CheckValidDailyMQUseCase {
             if (mqSupportPoint == null) {
                 // Missing interval - reset consecutive tracker and treat as invalid
                 addInvalidToTracker(consecutiveTracker);
+                addInvalidToTracker(totalTracker);
                 log.debug("Missing support point at {} for {}", currentTime, permanentId);
             } else {
                 // Update trackers based on current record
@@ -101,22 +102,22 @@ public class CheckValidDailyMQUseCase {
     private void updateDailyStatusFlags(MqDailyChartStatusRecord status,
             Tracker tracker, int threshold) {
         if (tracker.getCount(ParameterEnum.QKFZ) >= threshold) {
-            status.setQKfzZerosValid(false);
+            status.setQKfzIsValid(false);
         }
         if (tracker.getCount(ParameterEnum.QLKW) >= threshold) {
-            status.setQLkwZerosValid(false);
+            status.setQLkwIsValid(false);
         }
         if (tracker.getCount(ParameterEnum.QPKW) >= threshold) {
-            status.setQPkwZerosValid(false);
+            status.setQPkwIsValid(false);
         }
         if (tracker.getCount(ParameterEnum.VKFZ) >= threshold) {
-            status.setVKfzZerosValid(false);
+            status.setVKfzIsValid(false);
         }
         if (tracker.getCount(ParameterEnum.VPKW) >= threshold) {
-            status.setVPkwZerosValid(false);
+            status.setVPkwIsValid(false);
         }
         if (tracker.getCount(ParameterEnum.VLKW) >= threshold) {
-            status.setVLkwZerosValid(false);
+            status.setVLkwIsValid(false);
         }
     }
 

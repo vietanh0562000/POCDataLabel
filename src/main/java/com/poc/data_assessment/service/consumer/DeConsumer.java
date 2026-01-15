@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.kafka.annotation.KafkaListener;
 
 import com.poc.data_assessment.common.DataConst;
+import com.poc.data_assessment.dto.UpdateDeEvent;
 import com.poc.data_assessment.repository.DeRepository;
 import com.poc.data_assessment.service.UpsertDESupportPointStatusUseCase;
 import com.poc.data_assessment.service.UpsertMQSupportPointStatusUseCase;

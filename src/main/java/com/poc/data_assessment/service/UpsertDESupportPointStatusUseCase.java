@@ -6,10 +6,10 @@ import java.util.function.Function;
 import org.springframework.stereotype.Service;
 
 import com.poc.data_assessment.dto.TrafficCountsProjection;
+import com.poc.data_assessment.dto.UpdateDeEvent;
 import com.poc.data_assessment.enums.SupportPointStatus;
 import com.poc.data_assessment.repository.DeSupportPointRepository;
 import com.poc.data_assessment.repository.TrafficShortTermDataRepository;
-import com.poc.data_assessment.service.consumer.UpdateDeEvent;
 import com.poc.jooq.generated.tables.records.DeSupportPoint_15mRecord;
 
 import lombok.RequiredArgsConstructor;

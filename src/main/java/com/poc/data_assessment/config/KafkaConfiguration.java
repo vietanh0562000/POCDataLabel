@@ -12,7 +12,7 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
-import com.poc.data_assessment.service.consumer.UpdateDeEvent;
+import com.poc.data_assessment.dto.UpdateDeEvent;
 
 @Configuration
 public class KafkaConfiguration {
@@ -27,12 +27,12 @@ public class KafkaConfiguration {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         return props;
     }
-    
+
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, UpdateDeEvent> updateDeEventListenerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, UpdateDeEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(
-            commonConfigs(), new StringDeserializer(), new JsonDeserializer<>(UpdateDeEvent.class, false)));
+                commonConfigs(), new StringDeserializer(), new JsonDeserializer<>(UpdateDeEvent.class, false)));
         return factory;
     }
 }
