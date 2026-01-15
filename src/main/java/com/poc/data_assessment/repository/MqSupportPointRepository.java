@@ -8,6 +8,7 @@ import static com.poc.jooq.generated.tables.MqSupportPoint_15m.MQ_SUPPORT_POINT_
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 import org.jooq.DSLContext;
 
@@ -38,11 +39,30 @@ public class MqSupportPointRepository {
     }
 
     public void save(MqSupportPoint_15mRecord record) {
+
+        Objects.requireNonNull(record.getStartTime(), "startTime must not be null");
+        Objects.requireNonNull(record.getPermanentId(), "permanentId must not be null");
+
         dsl.insertInto(MQ_SUPPORT_POINT_15M)
-                .set(record)
-                .onConflict(MQ_SUPPORT_POINT_15M.START_TIME, MQ_SUPPORT_POINT_15M.PERMANENT_ID)
+                .set(MQ_SUPPORT_POINT_15M.START_TIME, record.getStartTime())
+                .set(MQ_SUPPORT_POINT_15M.PERMANENT_ID, record.getPermanentId())
+                .set(MQ_SUPPORT_POINT_15M.Q_KFZ_STT, record.getQKfzStt())
+                .set(MQ_SUPPORT_POINT_15M.Q_LKW_STT, record.getQLkwStt())
+                .set(MQ_SUPPORT_POINT_15M.Q_PKW_STT, record.getQPkwStt())
+                .set(MQ_SUPPORT_POINT_15M.V_KFZ_STT, record.getVKfzStt())
+                .set(MQ_SUPPORT_POINT_15M.V_LKW_STT, record.getVLkwStt())
+                .set(MQ_SUPPORT_POINT_15M.V_PKW_STT, record.getVPkwStt())
+                .onConflict(
+                        MQ_SUPPORT_POINT_15M.START_TIME,
+                        MQ_SUPPORT_POINT_15M.PERMANENT_ID)
                 .doUpdate()
-                .set(record)
+                .set(MQ_SUPPORT_POINT_15M.Q_KFZ_STT, record.getQKfzStt())
+                .set(MQ_SUPPORT_POINT_15M.Q_LKW_STT, record.getQLkwStt())
+                .set(MQ_SUPPORT_POINT_15M.Q_PKW_STT, record.getQPkwStt())
+                .set(MQ_SUPPORT_POINT_15M.V_KFZ_STT, record.getVKfzStt())
+                .set(MQ_SUPPORT_POINT_15M.V_LKW_STT, record.getVLkwStt())
+                .set(MQ_SUPPORT_POINT_15M.V_PKW_STT, record.getVPkwStt())
                 .execute();
     }
+
 }

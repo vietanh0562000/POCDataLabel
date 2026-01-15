@@ -2,7 +2,10 @@ package com.poc.data_assessment.service;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -29,6 +32,7 @@ public class CheckValidDailyMQUseCase {
     private final DailyLineChartMQRepository dailyLineChartMQRepository;
     private final MqSupportPointRepository mqSupportPointRepository;
     private static final Duration EXPECTED_INTERVAL = Duration.ofMinutes(15);
+    private static final int INTERVALS_PER_DAY = 96; // 24 hours * 4 intervals per hour
 
     public void execute(LocalDate date, String permanentId) {
         List<MqSupportPoint_15mRecord> mqSupportPoints = mqSupportPointRepository.findAllByMqIdAndDate(permanentId,
@@ -40,32 +44,39 @@ public class CheckValidDailyMQUseCase {
             dailyStatus = mqDailyChartStatusService.createMqDailyChartStatusRecord(date, permanentId);
         }
 
+        // Create a map for quick lookup of support points by time
+        Map<LocalDateTime, MqSupportPoint_15mRecord> supportPointMap = mqSupportPoints.stream()
+                .collect(Collectors.toMap(MqSupportPoint_15mRecord::getStartTime, sp -> sp));
+
         Tracker consecutiveTracker = new ConsecutiveTracker();
         Tracker totalTracker = new TotalTracker();
 
-        MqSupportPoint_15mRecord previousMqSupportPoint = null;
+        // Loop through all 96 expected 15-minute intervals in the day
+        LocalDateTime currentTime = date.atStartOfDay();
 
-        for (MqSupportPoint_15mRecord mqSupportPoint : mqSupportPoints) {
-            if (previousMqSupportPoint != null) {
-                if (hasTimeGap(mqSupportPoint, previousMqSupportPoint)) {
-                    consecutiveTracker.resetAll();
-                }
+        for (int i = 0; i < INTERVALS_PER_DAY; i++) {
+            MqSupportPoint_15mRecord mqSupportPoint = supportPointMap.get(currentTime);
+
+            if (mqSupportPoint == null) {
+                // Missing interval - reset consecutive tracker and treat as invalid
+                addInvalidToTracker(consecutiveTracker);
+                log.debug("Missing support point at {} for {}", currentTime, permanentId);
+            } else {
+                // Update trackers based on current record
                 updateTrackerCounts(mqSupportPoint, consecutiveTracker);
                 updateTrackerCounts(mqSupportPoint, totalTracker);
-                updateDailyStatusFlags(dailyStatus, consecutiveTracker,
-                        DataConst.CONSECUTIVE_ZERO_THRESHOLD);
-                updateDailyStatusFlags(dailyStatus, totalTracker, DataConst.TOTAL_ZERO_THRESHOLD);
             }
-            previousMqSupportPoint = mqSupportPoint;
+
+            // Update daily status flags after each interval
+            updateDailyStatusFlags(dailyStatus, consecutiveTracker,
+                    DataConst.CONSECUTIVE_ZERO_THRESHOLD);
+            updateDailyStatusFlags(dailyStatus, totalTracker, DataConst.TOTAL_ZERO_THRESHOLD);
+
+            // Move to next 15-minute interval
+            currentTime = currentTime.plus(EXPECTED_INTERVAL);
         }
 
         dailyLineChartMQRepository.save(dailyStatus);
-    }
-
-    private boolean hasTimeGap(MqSupportPoint_15mRecord current,
-            MqSupportPoint_15mRecord previous) {
-        Duration gap = Duration.between(previous.getStartTime(), current.getStartTime());
-        return !EXPECTED_INTERVAL.equals(gap);
     }
 
     private void updateTrackerCounts(MqSupportPoint_15mRecord record,
@@ -76,6 +87,15 @@ public class CheckValidDailyMQUseCase {
         tracker.update(ParameterEnum.VKFZ, isInValid(record.getVKfzStt()));
         tracker.update(ParameterEnum.VPKW, isInValid(record.getVPkwStt()));
         tracker.update(ParameterEnum.VLKW, isInValid(record.getVLkwStt()));
+    }
+
+    private void addInvalidToTracker(Tracker tracker) {
+        tracker.update(ParameterEnum.QKFZ, true);
+        tracker.update(ParameterEnum.QLKW, true);
+        tracker.update(ParameterEnum.QPKW, true);
+        tracker.update(ParameterEnum.VKFZ, true);
+        tracker.update(ParameterEnum.VPKW, true);
+        tracker.update(ParameterEnum.VLKW, true);
     }
 
     private void updateDailyStatusFlags(MqDailyChartStatusRecord status,

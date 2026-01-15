@@ -2,7 +2,11 @@ package com.poc.data_assessment.service;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -29,6 +33,7 @@ public class CheckValidDailyDEUseCase {
     private final DailyLineChartDERepository dailyLineChartDERepository;
     private final DeSupportPointRepository deSupportPointRepository;
     private static final Duration EXPECTED_INTERVAL = Duration.ofMinutes(15);
+    private static final int INTERVALS_PER_DAY = 96; // 24 hours * 4 intervals per hour
 
     public void execute(LocalDate date, String permanentId) {
         List<DeSupportPoint_15mRecord> deSupportPoints = deSupportPointRepository
@@ -40,32 +45,37 @@ public class CheckValidDailyDEUseCase {
             dailyStatus = deDailyChartStatusService.createDeDailyChartStatusRecord(date, permanentId);
         }
 
+        // Create a map for quick lookup of support points by time
+        Map<LocalDateTime, DeSupportPoint_15mRecord> supportPointMap = deSupportPoints.stream()
+                .collect(Collectors.toMap(DeSupportPoint_15mRecord::getStartTime, sp -> sp));
+
         Tracker consecutiveTracker = new ConsecutiveTracker();
         Tracker totalTracker = new TotalTracker();
 
-        DeSupportPoint_15mRecord previousDeSupportPoint = null;
+        // Loop through all 96 expected 15-minute intervals in the day
+        LocalDateTime currentTime = date.atStartOfDay();
 
-        for (DeSupportPoint_15mRecord deSupportPoint : deSupportPoints) {
-            if (previousDeSupportPoint != null) {
-                if (hasTimeGap(deSupportPoint, previousDeSupportPoint)) {
-                    consecutiveTracker.resetAll();
-                }
+        for (int i = 0; i < INTERVALS_PER_DAY; i++) {
+            DeSupportPoint_15mRecord deSupportPoint = supportPointMap.get(currentTime);
+
+            if (deSupportPoint == null) {
+                addInvalidToTracker(consecutiveTracker);
+                log.debug("Missing support point at {} for {}", currentTime, permanentId);
+            } else {
                 updateTrackerCounts(deSupportPoint, consecutiveTracker);
                 updateTrackerCounts(deSupportPoint, totalTracker);
-                updateDailyStatusFlags(dailyStatus, consecutiveTracker,
-                        DataConst.CONSECUTIVE_ZERO_THRESHOLD);
-                updateDailyStatusFlags(dailyStatus, totalTracker, DataConst.TOTAL_ZERO_THRESHOLD);
             }
-            previousDeSupportPoint = deSupportPoint;
+
+            // Update daily status flags after each interval
+            updateDailyStatusFlags(dailyStatus, consecutiveTracker,
+                    DataConst.CONSECUTIVE_ZERO_THRESHOLD);
+            updateDailyStatusFlags(dailyStatus, totalTracker, DataConst.TOTAL_ZERO_THRESHOLD);
+
+            // Move to next 15-minute interval
+            currentTime = currentTime.plus(EXPECTED_INTERVAL);
         }
 
         dailyLineChartDERepository.save(dailyStatus);
-    }
-
-    private boolean hasTimeGap(DeSupportPoint_15mRecord current,
-            DeSupportPoint_15mRecord previous) {
-        Duration gap = Duration.between(previous.getStartTime(), current.getStartTime());
-        return !EXPECTED_INTERVAL.equals(gap);
     }
 
     private void updateTrackerCounts(DeSupportPoint_15mRecord record,
@@ -76,6 +86,15 @@ public class CheckValidDailyDEUseCase {
         tracker.update(ParameterEnum.VKFZ, isInValid(record.getVKfzStt()));
         tracker.update(ParameterEnum.VPKW, isInValid(record.getVPkwStt()));
         tracker.update(ParameterEnum.VLKW, isInValid(record.getVLkwStt()));
+    }
+
+    private void addInvalidToTracker(Tracker tracker) {
+        tracker.update(ParameterEnum.QKFZ, true);
+        tracker.update(ParameterEnum.QLKW, true);
+        tracker.update(ParameterEnum.QPKW, true);
+        tracker.update(ParameterEnum.VKFZ, true);
+        tracker.update(ParameterEnum.VPKW, true);
+        tracker.update(ParameterEnum.VLKW, true);
     }
 
     private void updateDailyStatusFlags(DeDailyChartStatusRecord status,
