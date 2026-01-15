@@ -5,7 +5,9 @@ import org.springframework.stereotype.Repository;
 import com.poc.jooq.generated.tables.records.MqSupportPoint_15mRecord;
 import static com.poc.jooq.generated.tables.MqSupportPoint_15m.MQ_SUPPORT_POINT_15M;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.jooq.DSLContext;
 
@@ -17,6 +19,16 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class MqSupportPointRepository {
     private final DSLContext dsl;
+
+    public List<MqSupportPoint_15mRecord> findAllByMqIdAndDate(String mqId, LocalDate date) {
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.plusDays(1).atStartOfDay().minusNanos(1);
+
+        return dsl.selectFrom(MQ_SUPPORT_POINT_15M)
+                .where(MQ_SUPPORT_POINT_15M.PERMANENT_ID.eq(mqId))
+                .and(MQ_SUPPORT_POINT_15M.START_TIME.between(startOfDay, endOfDay))
+                .fetch();
+    }
 
     public MqSupportPoint_15mRecord findByPermanentIdAndStartTime(String permanentId, LocalDateTime startTime) {
         return dsl.selectFrom(MQ_SUPPORT_POINT_15M)

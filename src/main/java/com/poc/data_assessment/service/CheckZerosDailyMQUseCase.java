@@ -7,13 +7,14 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.poc.data_assessment.repository.TrafficAggregateData15mRepository;
 import com.poc.data_assessment.enums.ParameterEnum;
-import com.poc.data_assessment.repository.DailyLineChartDERepository;
-import com.poc.jooq.generated.tables.records.TrafficAggregatedData_15mRecord;
-import com.poc.jooq.generated.tables.records.DeDailyChartStatusRecord;
-import com.poc.data_assessment.service.domain.DeDailyChartStatusService;
+import com.poc.data_assessment.repository.DailyLineChartMQRepository;
+import com.poc.data_assessment.repository.MqAggregate15mRepository;
+import com.poc.jooq.generated.tables.records.MqAggregate_15mRecord;
+import com.poc.jooq.generated.tables.records.MqDailyChartStatusRecord;
+import com.poc.data_assessment.service.domain.MqDailyChartStatusService;
 import com.poc.data_assessment.service.tracker.ConsecutiveTracker;
+import com.poc.data_assessment.service.tracker.TotalTracker;
 import com.poc.data_assessment.service.tracker.Tracker;
 
 import lombok.RequiredArgsConstructor;
@@ -22,48 +23,50 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class CheckZerosDailyDEUseCase {
+public class CheckZerosDailyMQUseCase {
     private static final Duration EXPECTED_INTERVAL = Duration.ofMinutes(15);
 
-    private final DailyLineChartDERepository dailyLineChartDERepository;
-    private final TrafficAggregateData15mRepository trafficAggregateData15mRepository;
-    private final DeDailyChartStatusService deDailyChartStatusService;
+    private final MqAggregate15mRepository mqAggregate15mRepository;
+    private final DailyLineChartMQRepository dailyLineChartMQRepository;
+    private final MqDailyChartStatusService mqDailyChartStatusService;
 
-    public void execute(LocalDate date, String permanentId, int consecutiveZeroThreshold) {
-        List<TrafficAggregatedData_15mRecord> trafficData = trafficAggregateData15mRepository
-                .findAllByDateAndPermanentId(date, permanentId);
+    public void execute(LocalDate date, String mqId, int consecutiveZeroThreshold) {
+        List<MqAggregate_15mRecord> mqData = mqAggregate15mRepository.findAllByMqIdAndDate(mqId, date);
 
-        DeDailyChartStatusRecord dailyStatus = dailyLineChartDERepository.findByDateAndPermanentId(date, permanentId);
+        MqDailyChartStatusRecord dailyStatus = dailyLineChartMQRepository.findByDateAndPermanentId(date, mqId);
 
         if (dailyStatus == null) {
-            dailyStatus = deDailyChartStatusService.createDeDailyChartStatusRecord(date, permanentId);
+            dailyStatus = mqDailyChartStatusService.createMqDailyChartStatusRecord(date, mqId);
         }
 
-        Tracker tracker = new ConsecutiveTracker();
-        TrafficAggregatedData_15mRecord previousRecord = null;
+        Tracker consecutiveTracker = new ConsecutiveTracker();
+        Tracker totalTracker = new TotalTracker();
+        MqAggregate_15mRecord previousRecord = null;
 
-        for (TrafficAggregatedData_15mRecord currentRecord : trafficData) {
+        for (MqAggregate_15mRecord currentRecord : mqData) {
             if (previousRecord != null) {
                 if (hasTimeGap(currentRecord, previousRecord)) {
-                    tracker.resetAll();
+                    consecutiveTracker.resetAll();
                 }
 
-                updateTrackerCounts(currentRecord, tracker);
-                updateDailyStatusFlags(dailyStatus, tracker, consecutiveZeroThreshold);
+                updateTrackerCounts(currentRecord, consecutiveTracker);
+                updateTrackerCounts(currentRecord, totalTracker);
+                updateDailyStatusFlags(dailyStatus, consecutiveTracker, consecutiveZeroThreshold);
+                updateDailyStatusFlags(dailyStatus, totalTracker, consecutiveZeroThreshold);
             }
             previousRecord = currentRecord;
         }
 
-        dailyLineChartDERepository.save(dailyStatus);
+        dailyLineChartMQRepository.save(dailyStatus);
     }
 
-    private boolean hasTimeGap(TrafficAggregatedData_15mRecord current,
-            TrafficAggregatedData_15mRecord previous) {
-        Duration gap = Duration.between(previous.getBucket(), current.getBucket());
+    private boolean hasTimeGap(MqAggregate_15mRecord current,
+            MqAggregate_15mRecord previous) {
+        Duration gap = Duration.between(previous.getTimeBucket(), current.getTimeBucket());
         return !EXPECTED_INTERVAL.equals(gap);
     }
 
-    private void updateTrackerCounts(TrafficAggregatedData_15mRecord record,
+    private void updateTrackerCounts(MqAggregate_15mRecord record,
             Tracker tracker) {
         tracker.update(ParameterEnum.QKFZ, isZero(record.getQKfzSum()));
         tracker.update(ParameterEnum.QLKW, isZero(record.getQLkwSum()));
@@ -73,7 +76,7 @@ public class CheckZerosDailyDEUseCase {
         tracker.update(ParameterEnum.VLKW, isZero(record.getVLkwWeightedAvg()));
     }
 
-    private void updateDailyStatusFlags(DeDailyChartStatusRecord status,
+    private void updateDailyStatusFlags(MqDailyChartStatusRecord status,
             Tracker tracker,
             int threshold) {
         if (tracker.getCount(ParameterEnum.QKFZ) >= threshold) {
@@ -100,7 +103,7 @@ public class CheckZerosDailyDEUseCase {
         return value.compareTo(BigDecimal.ZERO) == 0;
     }
 
-    private boolean isZero(Double value) {
-        return value.compareTo(0.0) == 0;
+    private boolean isZero(Integer value) {
+        return value == 0;
     }
 }

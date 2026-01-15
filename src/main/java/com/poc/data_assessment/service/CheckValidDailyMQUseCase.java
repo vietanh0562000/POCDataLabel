@@ -9,66 +9,66 @@ import org.springframework.stereotype.Service;
 import com.poc.data_assessment.common.DataConst;
 import com.poc.data_assessment.enums.ParameterEnum;
 import com.poc.data_assessment.enums.SupportPointStatus;
-import com.poc.data_assessment.repository.DailyLineChartDERepository;
-import com.poc.data_assessment.repository.DeSupportPointRepository;
-import com.poc.data_assessment.service.domain.DeDailyChartStatusService;
+import com.poc.data_assessment.repository.DailyLineChartMQRepository;
+import com.poc.data_assessment.repository.MqSupportPointRepository;
+import com.poc.data_assessment.service.domain.MqDailyChartStatusService;
 import com.poc.data_assessment.service.tracker.ConsecutiveTracker;
 import com.poc.data_assessment.service.tracker.TotalTracker;
 import com.poc.data_assessment.service.tracker.Tracker;
-import com.poc.jooq.generated.tables.records.DeDailyChartStatusRecord;
-import com.poc.jooq.generated.tables.records.DeSupportPoint_15mRecord;
+import com.poc.jooq.generated.tables.records.MqDailyChartStatusRecord;
+import com.poc.jooq.generated.tables.records.MqSupportPoint_15mRecord;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
-public class CheckValidDailyDEUseCase {
-    private final DeDailyChartStatusService deDailyChartStatusService;
-    private final DailyLineChartDERepository dailyLineChartDERepository;
-    private final DeSupportPointRepository deSupportPointRepository;
+public class CheckValidDailyMQUseCase {
+    private final MqDailyChartStatusService mqDailyChartStatusService;
+    private final DailyLineChartMQRepository dailyLineChartMQRepository;
+    private final MqSupportPointRepository mqSupportPointRepository;
     private static final Duration EXPECTED_INTERVAL = Duration.ofMinutes(15);
 
     public void execute(LocalDate date, String permanentId) {
-        List<DeSupportPoint_15mRecord> deSupportPoints = deSupportPointRepository
-                .findAllDeSupportPointsByDateAndPermanentId(date, permanentId);
+        List<MqSupportPoint_15mRecord> mqSupportPoints = mqSupportPointRepository.findAllByMqIdAndDate(permanentId,
+                date);
 
-        DeDailyChartStatusRecord dailyStatus = dailyLineChartDERepository.findByDateAndPermanentId(date, permanentId);
+        MqDailyChartStatusRecord dailyStatus = dailyLineChartMQRepository.findByDateAndPermanentId(date, permanentId);
 
         if (dailyStatus == null) {
-            dailyStatus = deDailyChartStatusService.createDeDailyChartStatusRecord(date, permanentId);
+            dailyStatus = mqDailyChartStatusService.createMqDailyChartStatusRecord(date, permanentId);
         }
 
         Tracker consecutiveTracker = new ConsecutiveTracker();
         Tracker totalTracker = new TotalTracker();
 
-        DeSupportPoint_15mRecord previousDeSupportPoint = null;
+        MqSupportPoint_15mRecord previousMqSupportPoint = null;
 
-        for (DeSupportPoint_15mRecord deSupportPoint : deSupportPoints) {
-            if (previousDeSupportPoint != null) {
-                if (hasTimeGap(deSupportPoint, previousDeSupportPoint)) {
+        for (MqSupportPoint_15mRecord mqSupportPoint : mqSupportPoints) {
+            if (previousMqSupportPoint != null) {
+                if (hasTimeGap(mqSupportPoint, previousMqSupportPoint)) {
                     consecutiveTracker.resetAll();
                 }
-                updateTrackerCounts(deSupportPoint, consecutiveTracker);
-                updateTrackerCounts(deSupportPoint, totalTracker);
+                updateTrackerCounts(mqSupportPoint, consecutiveTracker);
+                updateTrackerCounts(mqSupportPoint, totalTracker);
                 updateDailyStatusFlags(dailyStatus, consecutiveTracker,
                         DataConst.CONSECUTIVE_ZERO_THRESHOLD);
                 updateDailyStatusFlags(dailyStatus, totalTracker, DataConst.TOTAL_ZERO_THRESHOLD);
             }
-            previousDeSupportPoint = deSupportPoint;
+            previousMqSupportPoint = mqSupportPoint;
         }
 
-        dailyLineChartDERepository.save(dailyStatus);
+        dailyLineChartMQRepository.save(dailyStatus);
     }
 
-    private boolean hasTimeGap(DeSupportPoint_15mRecord current,
-            DeSupportPoint_15mRecord previous) {
+    private boolean hasTimeGap(MqSupportPoint_15mRecord current,
+            MqSupportPoint_15mRecord previous) {
         Duration gap = Duration.between(previous.getStartTime(), current.getStartTime());
         return !EXPECTED_INTERVAL.equals(gap);
     }
 
-    private void updateTrackerCounts(DeSupportPoint_15mRecord record,
+    private void updateTrackerCounts(MqSupportPoint_15mRecord record,
             Tracker tracker) {
         tracker.update(ParameterEnum.QKFZ, isInValid(record.getQKfzStt()));
         tracker.update(ParameterEnum.QLKW, isInValid(record.getQLkwStt()));
@@ -78,7 +78,7 @@ public class CheckValidDailyDEUseCase {
         tracker.update(ParameterEnum.VLKW, isInValid(record.getVLkwStt()));
     }
 
-    private void updateDailyStatusFlags(DeDailyChartStatusRecord status,
+    private void updateDailyStatusFlags(MqDailyChartStatusRecord status,
             Tracker tracker, int threshold) {
         if (tracker.getCount(ParameterEnum.QKFZ) >= threshold) {
             status.setQKfzZerosValid(false);
