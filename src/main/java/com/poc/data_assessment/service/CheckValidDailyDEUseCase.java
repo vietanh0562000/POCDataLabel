@@ -10,6 +10,7 @@ import com.poc.data_assessment.common.DataConst;
 import com.poc.data_assessment.enums.SupportPointStatus;
 import com.poc.data_assessment.repository.DailyLineChartDERepository;
 import com.poc.data_assessment.repository.DeSupportPointRepository;
+import com.poc.data_assessment.service.domain.DeDailyChartStatusService;
 import com.poc.jooq.generated.tables.records.DeDailyChartStatusRecord;
 import com.poc.jooq.generated.tables.records.DeSupportPoint_15mRecord;
 
@@ -20,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class CheckValidDailyDEUseCase {
+    private final DeDailyChartStatusService deDailyChartStatusService;
     private final DailyLineChartDERepository dailyLineChartDERepository;
     private final DeSupportPointRepository deSupportPointRepository;
     private static final Duration EXPECTED_INTERVAL = Duration.ofMinutes(15);
@@ -31,21 +33,7 @@ public class CheckValidDailyDEUseCase {
         DeDailyChartStatusRecord dailyStatus = dailyLineChartDERepository.findByDateAndPermanentId(date, permanentId);
 
         if (dailyStatus == null) {
-            dailyStatus = new DeDailyChartStatusRecord();
-            dailyStatus.setDayDate(date);
-            dailyStatus.setPermanentId(permanentId);
-            dailyStatus.setQKfzIsValid(true);
-            dailyStatus.setQLkwIsValid(true);
-            dailyStatus.setQPkwIsValid(true);
-            dailyStatus.setVKfzIsValid(true);
-            dailyStatus.setVPkwIsValid(true);
-            dailyStatus.setVLkwIsValid(true);
-            dailyStatus.setQKfzZerosValid(true);
-            dailyStatus.setQLkwZerosValid(true);
-            dailyStatus.setQPkwZerosValid(true);
-            dailyStatus.setVKfzZerosValid(true);
-            dailyStatus.setVPkwZerosValid(true);
-            dailyStatus.setVLkwZerosValid(true);
+            dailyStatus = deDailyChartStatusService.createDeDailyChartStatusRecord(date, permanentId);
         }
 
         ConsecutiveInvalidTracker consecutiveInvalidTracker = new ConsecutiveInvalidTracker();

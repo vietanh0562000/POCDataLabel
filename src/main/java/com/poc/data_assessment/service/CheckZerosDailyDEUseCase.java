@@ -11,6 +11,7 @@ import com.poc.data_assessment.repository.TrafficAggregateData15mRepository;
 import com.poc.data_assessment.repository.DailyLineChartDERepository;
 import com.poc.jooq.generated.tables.records.TrafficAggregatedData_15mRecord;
 import com.poc.jooq.generated.tables.records.DeDailyChartStatusRecord;
+import com.poc.data_assessment.service.domain.DeDailyChartStatusService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ public class CheckZerosDailyDEUseCase {
     
     private final DailyLineChartDERepository dailyLineChartDERepository;
     private final TrafficAggregateData15mRepository trafficAggregateData15mRepository;
+    private final DeDailyChartStatusService deDailyChartStatusService;
 
     public void execute(LocalDate date, String permanentId, int consecutiveZeroThreshold) {
         List<TrafficAggregatedData_15mRecord> trafficData = 
@@ -32,22 +34,7 @@ public class CheckZerosDailyDEUseCase {
             dailyLineChartDERepository.findByDateAndPermanentId(date, permanentId);
         
         if (dailyStatus == null) {
-            dailyStatus = new DeDailyChartStatusRecord();
-            dailyStatus.setDayDate(date);
-            dailyStatus.setPermanentId(permanentId);
-            // Initialize all boolean fields to TRUE (default values)
-            dailyStatus.setQKfzIsValid(true);
-            dailyStatus.setQLkwIsValid(true);
-            dailyStatus.setQPkwIsValid(true);
-            dailyStatus.setVKfzIsValid(true);
-            dailyStatus.setVPkwIsValid(true);
-            dailyStatus.setVLkwIsValid(true);
-            dailyStatus.setQKfzZerosValid(true);
-            dailyStatus.setQLkwZerosValid(true);
-            dailyStatus.setQPkwZerosValid(true);
-            dailyStatus.setVKfzZerosValid(true);
-            dailyStatus.setVPkwZerosValid(true);
-            dailyStatus.setVLkwZerosValid(true);
+            dailyStatus = deDailyChartStatusService.createDeDailyChartStatusRecord(date, permanentId);
         }
 
         ConsecutiveZeroTracker tracker = new ConsecutiveZeroTracker();

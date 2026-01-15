@@ -6,7 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.kafka.annotation.KafkaListener;
 
 import com.poc.data_assessment.common.DataConst;
-import com.poc.data_assessment.service.UpdateDESupportPointUseCase;
+import com.poc.data_assessment.service.UpsertDESupportPointUseCase;
+import com.poc.data_assessment.service.CheckValidDailyDEUseCase;
 import com.poc.data_assessment.service.CheckZerosDailyDEUseCase;
 
 import lombok.RequiredArgsConstructor;
@@ -19,14 +20,16 @@ import lombok.RequiredArgsConstructor;
 )
 public class DeConsumer{
 
-    private final UpdateDESupportPointUseCase updateDESupportPointUseCase;
-    private final CheckZerosDailyDEUseCase updateDailyLineChartDEUseCase;
+    private final UpsertDESupportPointUseCase upsertDESupportPointUseCase;
+    private final CheckZerosDailyDEUseCase checkZerosDailyDEUseCase;
+    private final CheckValidDailyDEUseCase checkValidDailyDEUseCase;
 
     @KafkaListener(topics = "gap.traffic-data.short-term-data-ingested", containerFactory = "updateDeEventListenerFactory")
     public void consume(UpdateDeEvent updateDeEvent) {
         System.out.println("Consumed message: " + updateDeEvent.permanentId() + " " + updateDeEvent.timeBucket());
-        updateDESupportPointUseCase.execute(updateDeEvent);
-        updateDailyLineChartDEUseCase.execute(updateDeEvent.timeBucket().toLocalDate(), updateDeEvent.permanentId(), DataConst.CONSECUTIVE_ZERO_THRESHOLD);
+        upsertDESupportPointUseCase.execute(updateDeEvent);
+        checkZerosDailyDEUseCase.execute(updateDeEvent.timeBucket().toLocalDate(), updateDeEvent.permanentId(), DataConst.CONSECUTIVE_ZERO_THRESHOLD);
+        checkValidDailyDEUseCase.execute(updateDeEvent.timeBucket().toLocalDate(), updateDeEvent.permanentId());
     }
     
 }
