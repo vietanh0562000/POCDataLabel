@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UpsertDESupportPointUseCase {
+public class UpsertDESupportPointStatusUseCase {
     private static final int MIN_DATA_COUNT = 15;
     private static final long TIME_WINDOW_SECONDS = 15 * 60L;
 
@@ -27,26 +27,25 @@ public class UpsertDESupportPointUseCase {
 
     public void execute(UpdateDeEvent event) {
         DeSupportPoint_15mRecord supportPoint = findOrCreateSupportPoint(event);
-        
+
         TrafficCountsProjection counts = trafficShortTermDataRepository.getTrafficCounts(
-            event.timeBucket(), 
-            TIME_WINDOW_SECONDS, 
-            event.permanentId()
-        );
+                event.timeBucket(),
+                TIME_WINDOW_SECONDS,
+                event.permanentId());
 
         updateAllMetrics(supportPoint, counts);
-        
+
         deSupportPointRepository.save(supportPoint);
     }
 
     private DeSupportPoint_15mRecord findOrCreateSupportPoint(UpdateDeEvent event) {
         DeSupportPoint_15mRecord supportPoint = deSupportPointRepository
-            .findByPermanentIdAndStartTime(event.permanentId(), event.timeBucket());
-        
+                .findByPermanentIdAndStartTime(event.permanentId(), event.timeBucket());
+
         if (supportPoint == null) {
             supportPoint = createNewSupportPoint(event);
         }
-        
+
         return supportPoint;
     }
 
@@ -68,41 +67,41 @@ public class UpsertDESupportPointUseCase {
     }
 
     private void updateAllMetrics(DeSupportPoint_15mRecord supportPoint, TrafficCountsProjection counts) {
-        updateMetric(supportPoint, counts, 
-                    DeSupportPoint_15mRecord::setQKfzStt,
-                    TrafficCountsProjection::qKfzImplausible, 
-                    TrafficCountsProjection::qKfzMissing,
-                    TrafficCountsProjection::qKfzTotal);
-        
         updateMetric(supportPoint, counts,
-                    DeSupportPoint_15mRecord::setQPkwStt,
-                    TrafficCountsProjection::qPkwImplausible, 
-                    TrafficCountsProjection::qPkwMissing,
-                    TrafficCountsProjection::qPkwTotal);
-        
+                DeSupportPoint_15mRecord::setQKfzStt,
+                TrafficCountsProjection::qKfzImplausible,
+                TrafficCountsProjection::qKfzMissing,
+                TrafficCountsProjection::qKfzTotal);
+
         updateMetric(supportPoint, counts,
-                    DeSupportPoint_15mRecord::setQLkwStt,
-                    TrafficCountsProjection::qLkwImplausible, 
-                    TrafficCountsProjection::qLkwMissing,
-                    TrafficCountsProjection::qLkwTotal);
-        
+                DeSupportPoint_15mRecord::setQPkwStt,
+                TrafficCountsProjection::qPkwImplausible,
+                TrafficCountsProjection::qPkwMissing,
+                TrafficCountsProjection::qPkwTotal);
+
         updateMetric(supportPoint, counts,
-                    DeSupportPoint_15mRecord::setVKfzStt,
-                    TrafficCountsProjection::vKfzImplausible, 
-                    TrafficCountsProjection::vKfzMissing,
-                    TrafficCountsProjection::vKfzTotal);
-        
+                DeSupportPoint_15mRecord::setQLkwStt,
+                TrafficCountsProjection::qLkwImplausible,
+                TrafficCountsProjection::qLkwMissing,
+                TrafficCountsProjection::qLkwTotal);
+
         updateMetric(supportPoint, counts,
-                    DeSupportPoint_15mRecord::setVPkwStt,
-                    TrafficCountsProjection::vPkwImplausible, 
-                    TrafficCountsProjection::vPkwMissing,
-                    TrafficCountsProjection::vPkwTotal);
-        
+                DeSupportPoint_15mRecord::setVKfzStt,
+                TrafficCountsProjection::vKfzImplausible,
+                TrafficCountsProjection::vKfzMissing,
+                TrafficCountsProjection::vKfzTotal);
+
         updateMetric(supportPoint, counts,
-                    DeSupportPoint_15mRecord::setVLkwStt,
-                    TrafficCountsProjection::vLkwImplausible, 
-                    TrafficCountsProjection::vLkwMissing,
-                    TrafficCountsProjection::vLkwTotal);
+                DeSupportPoint_15mRecord::setVPkwStt,
+                TrafficCountsProjection::vPkwImplausible,
+                TrafficCountsProjection::vPkwMissing,
+                TrafficCountsProjection::vPkwTotal);
+
+        updateMetric(supportPoint, counts,
+                DeSupportPoint_15mRecord::setVLkwStt,
+                TrafficCountsProjection::vLkwImplausible,
+                TrafficCountsProjection::vLkwMissing,
+                TrafficCountsProjection::vLkwTotal);
     }
 
     private void updateMetric(
@@ -112,11 +111,11 @@ public class UpsertDESupportPointUseCase {
             Function<TrafficCountsProjection, Integer> implausibleGetter,
             Function<TrafficCountsProjection, Integer> missingGetter,
             Function<TrafficCountsProjection, Integer> totalGetter) {
-        
+
         int implausibleCount = implausibleGetter.apply(counts);
         int missingCount = missingGetter.apply(counts);
         int totalCount = totalGetter.apply(counts);
-        
+
         SupportPointStatus status = determineStatus(implausibleCount, missingCount, totalCount);
         setter.accept(supportPoint, (short) status.ordinal());
     }
@@ -126,12 +125,14 @@ public class UpsertDESupportPointUseCase {
      * 
      * Business rules:
      * - IMPLAUSIBLE: When any implausible data exists (data quality issue)
-     * - MISSING: When total data count is below minimum threshold (insufficient data)
+     * - MISSING: When total data count is below minimum threshold (insufficient
+     * data)
      * - COMPLETED: When data is sufficient and plausible (default state)
      * 
-     * Note: Assumes data collection every 1 minute (15 expected records per 15-min window)
+     * Note: Assumes data collection every 1 minute (15 expected records per 15-min
+     * window)
      */
-    private SupportPointStatus determineStatus(int implausibleCount,int missingCount, int totalCount) {
+    private SupportPointStatus determineStatus(int implausibleCount, int missingCount, int totalCount) {
         if (implausibleCount > 0) {
             return SupportPointStatus.IMPLAUSIBLE;
         }
