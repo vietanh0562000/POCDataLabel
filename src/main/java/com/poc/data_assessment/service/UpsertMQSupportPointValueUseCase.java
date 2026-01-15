@@ -58,13 +58,16 @@ public class UpsertMQSupportPointValueUseCase {
                 .filter(Objects::nonNull)
                 .forEach(record -> {
                     if (record.getVKfzWeightedAvg() != null) {
-                        speedMqSupportPointDTO.vKfz += record.getVKfzWeightedAvg();
+                        double qKfzSum = record.getQKfzSum() != null ? record.getQKfzSum().doubleValue() : 0.0;
+                        speedMqSupportPointDTO.vKfz += record.getVKfzWeightedAvg() * qKfzSum;
                     }
                     if (record.getVLkwWeightedAvg() != null) {
-                        speedMqSupportPointDTO.vLkw += record.getVLkwWeightedAvg();
+                        double qLkwSum = record.getQLkwSum() != null ? record.getQLkwSum().doubleValue() : 0.0;
+                        speedMqSupportPointDTO.vLkw += record.getVLkwWeightedAvg() * qLkwSum;
                     }
                     if (record.getVPkwWeightedAvg() != null) {
-                        speedMqSupportPointDTO.vPkw += record.getVPkwWeightedAvg();
+                        double qPkwSum = record.getQPkwSum() != null ? record.getQPkwSum().doubleValue() : 0.0;
+                        speedMqSupportPointDTO.vPkw += record.getVPkwWeightedAvg() * qPkwSum;
                     }
                 });
 
