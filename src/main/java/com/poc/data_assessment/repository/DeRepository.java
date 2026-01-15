@@ -19,7 +19,13 @@ public class DeRepository {
 
     public List<DeRecord> findAllDEsByMQId(String mqId) {
         return dsl.selectFrom(DE)
-            .where(DE.MQ_ID.eq(mqId))
-            .fetchInto(DeRecord.class);
+                .where(DE.MQ_ID.eq(mqId))
+                .fetchInto(DeRecord.class);
+    }
+
+    public String findMQIdByPermanentId(String permanentId) {
+        return dsl.selectFrom(DE)
+                .where(DE.ID.eq(permanentId))
+                .fetchOne(DE.MQ_ID);
     }
 }

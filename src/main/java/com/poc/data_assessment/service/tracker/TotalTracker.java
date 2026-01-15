@@ -8,6 +8,9 @@ import lombok.Getter;
 public class TotalTracker extends AbstractTracker {
     @Override
     public void update(ParameterEnum parameter, boolean isCompleted) {
-        counts.put(parameter, isCompleted ? counts.get(parameter) + 1 : counts.get(parameter));
+        if (isCompleted) {
+            int current = counts.getOrDefault(parameter, 0);
+            counts.put(parameter, current + 1);
+        }
     }
 }

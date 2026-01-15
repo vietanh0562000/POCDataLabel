@@ -14,8 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class MqDailyChartStatusService {
-    private final DailyLineChartMQRepository dailyLineChartMQRepository;
-
     public MqDailyChartStatusRecord createMqDailyChartStatusRecord(LocalDate date, String permanentId) {
         MqDailyChartStatusRecord record = new MqDailyChartStatusRecord();
         record.setDayDate(date);
@@ -32,6 +30,7 @@ public class MqDailyChartStatusService {
         record.setVKfzIsValid(true);
         record.setVPkwIsValid(true);
         record.setVLkwIsValid(true);
+
         return record;
     }
 }

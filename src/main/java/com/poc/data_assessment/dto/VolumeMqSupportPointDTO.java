@@ -8,6 +8,10 @@ public class VolumeMqSupportPointDTO {
     public BigDecimal qPkw;
 
     public static VolumeMqSupportPointDTO of() {
-        return new VolumeMqSupportPointDTO();
+        var volumeMqSupportPointDTO = new VolumeMqSupportPointDTO();
+        volumeMqSupportPointDTO.qKfz = BigDecimal.ZERO;
+        volumeMqSupportPointDTO.qLkw = BigDecimal.ZERO;
+        volumeMqSupportPointDTO.qPkw = BigDecimal.ZERO;
+        return volumeMqSupportPointDTO;
     }
 }

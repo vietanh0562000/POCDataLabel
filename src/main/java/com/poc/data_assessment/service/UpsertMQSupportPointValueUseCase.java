@@ -3,6 +3,7 @@ package com.poc.data_assessment.service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -38,24 +39,55 @@ public class UpsertMQSupportPointValueUseCase {
                         deIds);
 
         VolumeMqSupportPointDTO volumeMqSupportPointDTO = VolumeMqSupportPointDTO.of();
-        trafficAggregatedData15mRecords.stream().forEach(record -> {
-            volumeMqSupportPointDTO.qKfz.add(record.getQKfzSum());
-            volumeMqSupportPointDTO.qLkw.add(record.getQLkwSum());
-            volumeMqSupportPointDTO.qPkw.add(record.getQPkwSum());
-        });
+        trafficAggregatedData15mRecords.stream()
+                .filter(Objects::nonNull)
+                .forEach(record -> {
+                    if (record.getQKfzSum() != null) {
+                        volumeMqSupportPointDTO.qKfz = volumeMqSupportPointDTO.qKfz.add(record.getQKfzSum());
+                    }
+                    if (record.getQLkwSum() != null) {
+                        volumeMqSupportPointDTO.qLkw = volumeMqSupportPointDTO.qLkw.add(record.getQLkwSum());
+                    }
+                    if (record.getQPkwSum() != null) {
+                        volumeMqSupportPointDTO.qPkw = volumeMqSupportPointDTO.qPkw.add(record.getQPkwSum());
+                    }
+                });
 
         SpeedMqSupportPointDTO speedMqSupportPointDTO = SpeedMqSupportPointDTO.of();
-        trafficAggregatedData15mRecords.stream().forEach(record -> {
-            speedMqSupportPointDTO.vKfz += record.getVKfzWeightedAvg();
-            speedMqSupportPointDTO.vLkw += record.getVLkwWeightedAvg();
-            speedMqSupportPointDTO.vPkw += record.getVPkwWeightedAvg();
-        });
+        trafficAggregatedData15mRecords.stream()
+                .filter(Objects::nonNull)
+                .forEach(record -> {
+                    if (record.getVKfzWeightedAvg() != null) {
+                        speedMqSupportPointDTO.vKfz += record.getVKfzWeightedAvg();
+                    }
+                    if (record.getVLkwWeightedAvg() != null) {
+                        speedMqSupportPointDTO.vLkw += record.getVLkwWeightedAvg();
+                    }
+                    if (record.getVPkwWeightedAvg() != null) {
+                        speedMqSupportPointDTO.vPkw += record.getVPkwWeightedAvg();
+                    }
+                });
 
-        speedMqSupportPointDTO.vKfz /= volumeMqSupportPointDTO.qKfz.doubleValue();
-        speedMqSupportPointDTO.vLkw /= volumeMqSupportPointDTO.qLkw.doubleValue();
-        speedMqSupportPointDTO.vPkw /= volumeMqSupportPointDTO.qPkw.doubleValue();
+        if (!volumeMqSupportPointDTO.qKfz.equals(BigDecimal.ZERO)) {
+            speedMqSupportPointDTO.vKfz /= volumeMqSupportPointDTO.qKfz.doubleValue();
+        } else {
+            speedMqSupportPointDTO.vKfz = 0.0;
+        }
 
-        MqAggregate_15mRecord mqAggregate_15mRecord = new MqAggregate_15mRecord();
+        if (!volumeMqSupportPointDTO.qLkw.equals(BigDecimal.ZERO)) {
+            speedMqSupportPointDTO.vLkw /= volumeMqSupportPointDTO.qLkw.doubleValue();
+        } else {
+            speedMqSupportPointDTO.vLkw = 0.0;
+        }
+
+        if (!volumeMqSupportPointDTO.qPkw.equals(BigDecimal.ZERO)) {
+            speedMqSupportPointDTO.vPkw /= volumeMqSupportPointDTO.qPkw.doubleValue();
+        } else {
+            speedMqSupportPointDTO.vPkw = 0.0;
+        }
+
+        MqAggregate_15mRecord mqAggregate_15mRecord = mqAggregate_15mRepository
+                .findByMqIdAndTimeBucket(mqId, timeBucket).orElse(new MqAggregate_15mRecord());
         mqAggregate_15mRecord.setMqId(mqId);
         mqAggregate_15mRecord.setTimeBucket(timeBucket);
         mqAggregate_15mRecord.setQKfzSum(volumeMqSupportPointDTO.qKfz.intValue());

@@ -14,7 +14,7 @@ public abstract class AbstractTracker implements Tracker {
 
     @Override
     public int getCount(ParameterEnum parameter) {
-        return counts.get(parameter);
+        return counts.getOrDefault(parameter, 0);
     }
 
     @Override

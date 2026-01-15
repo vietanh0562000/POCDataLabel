@@ -6,7 +6,11 @@ public class SpeedMqSupportPointDTO {
     public Double vPkw;
 
     public static SpeedMqSupportPointDTO of() {
-        return new SpeedMqSupportPointDTO();
+        var speedMqSupportPointDTO = new SpeedMqSupportPointDTO();
+        speedMqSupportPointDTO.vKfz = 0.0;
+        speedMqSupportPointDTO.vLkw = 0.0;
+        speedMqSupportPointDTO.vPkw = 0.0;
+        return speedMqSupportPointDTO;
     }
 
 }

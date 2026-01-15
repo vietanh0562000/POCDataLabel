@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 import com.poc.jooq.generated.tables.records.MqAggregate_15mRecord;
 
@@ -18,6 +19,13 @@ import com.poc.jooq.generated.tables.records.MqAggregate_15mRecord;
 @RequiredArgsConstructor
 public class MqAggregate15mRepository {
     private final DSLContext dsl;
+
+    public Optional<MqAggregate_15mRecord> findByMqIdAndTimeBucket(String mqId, LocalDateTime timeBucket) {
+        return dsl.selectFrom(MQ_AGGREGATE_15M)
+                .where(MQ_AGGREGATE_15M.MQ_ID.eq(mqId))
+                .and(MQ_AGGREGATE_15M.TIME_BUCKET.eq(timeBucket))
+                .fetchOptionalInto(MqAggregate_15mRecord.class);
+    }
 
     public List<MqAggregate_15mRecord> findAllByMqIdAndDate(String mqId, LocalDate date) {
         LocalDateTime startOfDay = date.atStartOfDay();
