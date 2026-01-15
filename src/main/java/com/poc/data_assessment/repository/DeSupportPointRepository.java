@@ -3,6 +3,7 @@ package com.poc.data_assessment.repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,12 @@ public class DeSupportPointRepository {
         return dsl.selectFrom(DE_SUPPORT_POINT_15M)
                 .where(DE_SUPPORT_POINT_15M.MQ_ID.eq(mqId))
                 .fetch();
+    }
+
+    public List<String> findAllPermanentIdsByMqId(String mqId) {
+        return dsl.selectFrom(DE_SUPPORT_POINT_15M)
+                .where(DE_SUPPORT_POINT_15M.MQ_ID.eq(mqId))
+                .fetch().stream().map(DeSupportPoint_15mRecord::getPermanentId).collect(Collectors.toList());
     }
 
     public List<DeSupportPoint_15mRecord> findAllDeSupportPointsByDateAndPermanentId(LocalDate date,
