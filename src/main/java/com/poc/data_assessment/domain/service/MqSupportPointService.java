@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 
-import com.poc.data_assessment.domain.port.out.MqSupportPointRepository;
+import com.poc.data_assessment.adapter.out.persistence.repository.MqSupportPointRepository;
 import com.poc.jooq.generated.tables.records.MqSupportPoint_15mRecord;
 
 import lombok.RequiredArgsConstructor;

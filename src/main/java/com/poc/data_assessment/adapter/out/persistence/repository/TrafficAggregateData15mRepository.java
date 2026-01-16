@@ -1,4 +1,4 @@
-package com.poc.data_assessment.domain.port.out;
+package com.poc.data_assessment.adapter.out.persistence.repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

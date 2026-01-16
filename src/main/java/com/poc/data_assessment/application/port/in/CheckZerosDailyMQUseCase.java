@@ -1,4 +1,4 @@
-package com.poc.data_assessment.application.service;
+package com.poc.data_assessment.application.port.in;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -7,12 +7,12 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.poc.data_assessment.adapter.out.persistence.repository.DailyLineChartMQRepository;
+import com.poc.data_assessment.adapter.out.persistence.repository.MqAggregate15mRepository;
 import com.poc.data_assessment.application.service.tracker.ConsecutiveTracker;
 import com.poc.data_assessment.application.service.tracker.TotalTracker;
 import com.poc.data_assessment.application.service.tracker.Tracker;
 import com.poc.data_assessment.domain.enums.ParameterEnum;
-import com.poc.data_assessment.domain.port.out.DailyLineChartMQRepository;
-import com.poc.data_assessment.domain.port.out.MqAggregate15mRepository;
 import com.poc.data_assessment.domain.service.MqDailyChartStatusService;
 import com.poc.jooq.generated.tables.records.MqAggregate_15mRecord;
 import com.poc.jooq.generated.tables.records.MqDailyChartStatusRecord;

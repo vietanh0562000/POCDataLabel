@@ -4,7 +4,7 @@ import java.time.LocalDate;
 
 import org.springframework.stereotype.Service;
 
-import com.poc.data_assessment.domain.port.out.DailyLineChartMQRepository;
+import com.poc.data_assessment.adapter.out.persistence.repository.DailyLineChartMQRepository;
 import com.poc.jooq.generated.tables.records.MqDailyChartStatusRecord;
 
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.poc.data_assessment.application.service;
+package com.poc.data_assessment.application.port.in;
 
 import java.time.LocalDateTime;
 import java.util.EnumMap;
@@ -9,9 +9,9 @@ import java.util.function.Function;
 
 import org.springframework.stereotype.Service;
 
+import com.poc.data_assessment.adapter.out.persistence.repository.DeSupportPointRepository;
+import com.poc.data_assessment.adapter.out.persistence.repository.MqSupportPointRepository;
 import com.poc.data_assessment.domain.enums.SupportPointStatus;
-import com.poc.data_assessment.domain.port.out.DeSupportPointRepository;
-import com.poc.data_assessment.domain.port.out.MqSupportPointRepository;
 import com.poc.data_assessment.domain.service.MqSupportPointService;
 import com.poc.jooq.generated.tables.records.DeSupportPoint_15mRecord;
 import com.poc.jooq.generated.tables.records.MqSupportPoint_15mRecord;

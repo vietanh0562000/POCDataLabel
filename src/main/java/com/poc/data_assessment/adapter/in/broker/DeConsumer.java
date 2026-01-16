@@ -1,20 +1,19 @@
-package com.poc.data_assessment.application.service.consumer;
+package com.poc.data_assessment.adapter.in.broker;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import org.springframework.kafka.annotation.KafkaListener;
 
-import com.poc.data_assessment.application.dto.UpdateDeEvent;
-import com.poc.data_assessment.application.service.CheckValidDailyDEUseCase;
-import com.poc.data_assessment.application.service.CheckValidDailyMQUseCase;
-import com.poc.data_assessment.application.service.CheckZerosDailyDEUseCase;
-import com.poc.data_assessment.application.service.CheckZerosDailyMQUseCase;
-import com.poc.data_assessment.application.service.UpsertDESupportPointStatusUseCase;
-import com.poc.data_assessment.application.service.UpsertMQSupportPointStatusUseCase;
-import com.poc.data_assessment.application.service.UpsertMQSupportPointValueUseCase;
+import com.poc.data_assessment.adapter.out.persistence.repository.DeRepository;
+import com.poc.data_assessment.application.port.in.CheckValidDailyDEUseCase;
+import com.poc.data_assessment.application.port.in.CheckValidDailyMQUseCase;
+import com.poc.data_assessment.application.port.in.CheckZerosDailyDEUseCase;
+import com.poc.data_assessment.application.port.in.CheckZerosDailyMQUseCase;
+import com.poc.data_assessment.application.port.in.UpsertDESupportPointStatusUseCase;
+import com.poc.data_assessment.application.port.in.UpsertMQSupportPointStatusUseCase;
+import com.poc.data_assessment.application.port.in.UpsertMQSupportPointValueUseCase;
 import com.poc.data_assessment.common.DataConst;
-import com.poc.data_assessment.domain.port.out.DeRepository;
 
 import lombok.RequiredArgsConstructor;
 
