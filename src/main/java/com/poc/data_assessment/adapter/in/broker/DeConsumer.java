@@ -6,13 +6,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.kafka.annotation.KafkaListener;
 
 import com.poc.data_assessment.adapter.out.persistence.repository.DeRepository;
-import com.poc.data_assessment.application.port.in.CheckValidDailyDEUseCase;
-import com.poc.data_assessment.application.port.in.CheckValidDailyMQUseCase;
-import com.poc.data_assessment.application.port.in.CheckZerosDailyDEUseCase;
-import com.poc.data_assessment.application.port.in.CheckZerosDailyMQUseCase;
-import com.poc.data_assessment.application.port.in.UpsertDESupportPointStatusUseCase;
-import com.poc.data_assessment.application.port.in.UpsertMQSupportPointStatusUseCase;
-import com.poc.data_assessment.application.port.in.UpsertMQSupportPointValueUseCase;
+import com.poc.data_assessment.application.service.CheckValidDailyDEService;
+import com.poc.data_assessment.application.service.CheckValidDailyMQService;
+import com.poc.data_assessment.application.service.CheckZerosDailyDEService;
+import com.poc.data_assessment.application.service.CheckZerosDailyMQService;
+import com.poc.data_assessment.application.service.UpsertDESupportPointStatusService;
+import com.poc.data_assessment.application.service.UpsertMQSupportPointStatusService;
+import com.poc.data_assessment.application.service.UpsertMQSupportPointValueService;
 import com.poc.data_assessment.common.DataConst;
 
 import lombok.RequiredArgsConstructor;
@@ -22,13 +22,13 @@ import lombok.RequiredArgsConstructor;
 @ConditionalOnProperty(name = "spring.kafka.bootstrap-servers", matchIfMissing = true)
 public class DeConsumer {
 
-    private final UpsertDESupportPointStatusUseCase upsertDESupportPointUseCase;
-    private final CheckZerosDailyDEUseCase checkZerosDailyDEUseCase;
-    private final CheckValidDailyDEUseCase checkValidDailyDEUseCase;
-    private final UpsertMQSupportPointValueUseCase upsertMQSupportPointValueUseCase;
-    private final UpsertMQSupportPointStatusUseCase upsertMQSupportPointStatusUseCase;
-    private final CheckZerosDailyMQUseCase checkZerosDailyMQUseCase;
-    private final CheckValidDailyMQUseCase checkValidDailyMQUseCase;
+    private final UpsertDESupportPointStatusService upsertDESupportPointUseCase;
+    private final CheckZerosDailyDEService checkZerosDailyDEUseCase;
+    private final CheckValidDailyDEService checkValidDailyDEUseCase;
+    private final UpsertMQSupportPointValueService upsertMQSupportPointValueUseCase;
+    private final UpsertMQSupportPointStatusService upsertMQSupportPointStatusUseCase;
+    private final CheckZerosDailyMQService checkZerosDailyMQUseCase;
+    private final CheckValidDailyMQService checkValidDailyMQUseCase;
 
     private final DeRepository deRepository;
 

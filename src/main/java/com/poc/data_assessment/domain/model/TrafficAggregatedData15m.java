@@ -1,5 +1,6 @@
 package com.poc.data_assessment.domain.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import lombok.Builder;
