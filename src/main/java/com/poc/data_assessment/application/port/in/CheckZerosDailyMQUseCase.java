@@ -7,15 +7,14 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.poc.data_assessment.adapter.out.persistence.repository.DailyLineChartMQRepository;
-import com.poc.data_assessment.adapter.out.persistence.repository.MqAggregate15mRepository;
-import com.poc.data_assessment.application.service.tracker.ConsecutiveTracker;
-import com.poc.data_assessment.application.service.tracker.TotalTracker;
-import com.poc.data_assessment.application.service.tracker.Tracker;
-import com.poc.data_assessment.domain.enums.ParameterEnum;
-import com.poc.data_assessment.domain.service.MqDailyChartStatusService;
-import com.poc.jooq.generated.tables.records.MqAggregate_15mRecord;
-import com.poc.jooq.generated.tables.records.MqDailyChartStatusRecord;
+import com.poc.data_assessment.application.port.out.MqAggregate15mRepositoryPort;
+import com.poc.data_assessment.application.port.out.MqDailyChartRepositoryPort;
+import com.poc.data_assessment.domain.model.MqAggregate15m;
+import com.poc.data_assessment.domain.model.MqDailyChartStatus;
+import com.poc.data_assessment.domain.model.enums.ParameterEnum;
+import com.poc.data_assessment.domain.tracker.ConsecutiveTracker;
+import com.poc.data_assessment.domain.tracker.TotalTracker;
+import com.poc.data_assessment.domain.tracker.Tracker;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,24 +25,23 @@ import lombok.extern.slf4j.Slf4j;
 public class CheckZerosDailyMQUseCase {
     private static final Duration EXPECTED_INTERVAL = Duration.ofMinutes(15);
 
-    private final MqAggregate15mRepository mqAggregate15mRepository;
-    private final DailyLineChartMQRepository dailyLineChartMQRepository;
-    private final MqDailyChartStatusService mqDailyChartStatusService;
+    private final MqAggregate15mRepositoryPort mqAggregate15mRepository;
+    private final MqDailyChartRepositoryPort dailyLineChartMQRepository;
 
     public void execute(LocalDate date, String mqId, int consecutiveZeroThreshold) {
-        List<MqAggregate_15mRecord> mqData = mqAggregate15mRepository.findAllByMqIdAndDate(mqId, date);
+        List<MqAggregate15m> mqData = mqAggregate15mRepository.findAllByMqIdAndDate(mqId, date);
 
-        MqDailyChartStatusRecord dailyStatus = dailyLineChartMQRepository.findByDateAndPermanentId(date, mqId);
+        MqDailyChartStatus dailyStatus = dailyLineChartMQRepository.findByDateAndPermanentId(date, mqId);
 
         if (dailyStatus == null) {
-            dailyStatus = mqDailyChartStatusService.createMqDailyChartStatusRecord(date, mqId);
+            dailyStatus = new MqDailyChartStatus(date, mqId);
         }
 
         Tracker consecutiveTracker = new ConsecutiveTracker();
         Tracker totalTracker = new TotalTracker();
-        MqAggregate_15mRecord previousRecord = null;
+        MqAggregate15m previousRecord = null;
 
-        for (MqAggregate_15mRecord currentRecord : mqData) {
+        for (MqAggregate15m currentRecord : mqData) {
             if (previousRecord != null) {
                 if (hasTimeGap(currentRecord, previousRecord)) {
                     consecutiveTracker.resetAll();
@@ -60,13 +58,13 @@ public class CheckZerosDailyMQUseCase {
         dailyLineChartMQRepository.save(dailyStatus);
     }
 
-    private boolean hasTimeGap(MqAggregate_15mRecord current,
-            MqAggregate_15mRecord previous) {
+    private boolean hasTimeGap(MqAggregate15m current,
+            MqAggregate15m previous) {
         Duration gap = Duration.between(previous.getTimeBucket(), current.getTimeBucket());
         return !EXPECTED_INTERVAL.equals(gap);
     }
 
-    private void updateTrackerCounts(MqAggregate_15mRecord record,
+    private void updateTrackerCounts(MqAggregate15m record,
             Tracker tracker) {
         tracker.update(ParameterEnum.QKFZ, isZero(record.getQKfzSum()));
         tracker.update(ParameterEnum.QLKW, isZero(record.getQLkwSum()));
@@ -76,7 +74,7 @@ public class CheckZerosDailyMQUseCase {
         tracker.update(ParameterEnum.VLKW, isZero(record.getVLkwWeightedAvg()));
     }
 
-    private void updateDailyStatusFlags(MqDailyChartStatusRecord status,
+    private void updateDailyStatusFlags(MqDailyChartStatus status,
             Tracker tracker,
             int threshold) {
         if (tracker.getCount(ParameterEnum.QKFZ) >= threshold) {
@@ -103,7 +101,7 @@ public class CheckZerosDailyMQUseCase {
         return value.compareTo(BigDecimal.ZERO) == 0;
     }
 
-    private boolean isZero(Integer value) {
-        return value == 0;
+    private boolean isZero(Double value) {
+        return value.compareTo(0.0) == 0;
     }
 }

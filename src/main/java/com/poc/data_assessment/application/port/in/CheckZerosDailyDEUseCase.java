@@ -7,14 +7,13 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.poc.data_assessment.adapter.out.persistence.repository.DailyLineChartDERepository;
-import com.poc.data_assessment.adapter.out.persistence.repository.TrafficAggregateData15mRepository;
-import com.poc.data_assessment.application.service.tracker.ConsecutiveTracker;
-import com.poc.data_assessment.application.service.tracker.Tracker;
-import com.poc.data_assessment.domain.enums.ParameterEnum;
-import com.poc.data_assessment.domain.service.DeDailyChartStatusService;
-import com.poc.jooq.generated.tables.records.TrafficAggregatedData_15mRecord;
-import com.poc.jooq.generated.tables.records.DeDailyChartStatusRecord;
+import com.poc.data_assessment.application.port.out.DeDailyChartRepositoryPort;
+import com.poc.data_assessment.application.port.out.TrafficAggregateData15mRepositoryPort;
+import com.poc.data_assessment.domain.model.DeDailyChartStatus;
+import com.poc.data_assessment.domain.model.TrafficAggregatedData15m;
+import com.poc.data_assessment.domain.model.enums.ParameterEnum;
+import com.poc.data_assessment.domain.tracker.ConsecutiveTracker;
+import com.poc.data_assessment.domain.tracker.Tracker;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,24 +24,23 @@ import lombok.extern.slf4j.Slf4j;
 public class CheckZerosDailyDEUseCase {
     private static final Duration EXPECTED_INTERVAL = Duration.ofMinutes(15);
 
-    private final DailyLineChartDERepository dailyLineChartDERepository;
-    private final TrafficAggregateData15mRepository trafficAggregateData15mRepository;
-    private final DeDailyChartStatusService deDailyChartStatusService;
+    private final DeDailyChartRepositoryPort dailyLineChartDERepository;
+    private final TrafficAggregateData15mRepositoryPort trafficAggregateData15mRepository;
 
     public void execute(LocalDate date, String permanentId, int consecutiveZeroThreshold) {
-        List<TrafficAggregatedData_15mRecord> trafficData = trafficAggregateData15mRepository
+        List<TrafficAggregatedData15m> trafficData = trafficAggregateData15mRepository
                 .findAllByDateAndPermanentId(date, permanentId);
 
-        DeDailyChartStatusRecord dailyStatus = dailyLineChartDERepository.findByDateAndPermanentId(date, permanentId);
+        DeDailyChartStatus dailyStatus = dailyLineChartDERepository.findByDateAndPermanentId(date, permanentId);
 
         if (dailyStatus == null) {
-            dailyStatus = deDailyChartStatusService.createDeDailyChartStatusRecord(date, permanentId);
+            dailyStatus = new DeDailyChartStatus(date, permanentId);
         }
 
         Tracker tracker = new ConsecutiveTracker();
-        TrafficAggregatedData_15mRecord previousRecord = null;
+        TrafficAggregatedData15m previousRecord = null;
 
-        for (TrafficAggregatedData_15mRecord currentRecord : trafficData) {
+        for (TrafficAggregatedData15m currentRecord : trafficData) {
             if (previousRecord != null) {
                 if (hasTimeGap(currentRecord, previousRecord)) {
                     tracker.resetAll();
@@ -57,13 +55,13 @@ public class CheckZerosDailyDEUseCase {
         dailyLineChartDERepository.save(dailyStatus);
     }
 
-    private boolean hasTimeGap(TrafficAggregatedData_15mRecord current,
-            TrafficAggregatedData_15mRecord previous) {
-        Duration gap = Duration.between(previous.getBucket(), current.getBucket());
+    private boolean hasTimeGap(TrafficAggregatedData15m current,
+            TrafficAggregatedData15m previous) {
+        Duration gap = Duration.between(previous.getTimeBucket(), current.getTimeBucket());
         return !EXPECTED_INTERVAL.equals(gap);
     }
 
-    private void updateTrackerCounts(TrafficAggregatedData_15mRecord record,
+    private void updateTrackerCounts(TrafficAggregatedData15m record,
             Tracker tracker) {
         tracker.update(ParameterEnum.QKFZ, isZero(record.getQKfzSum()));
         tracker.update(ParameterEnum.QLKW, isZero(record.getQLkwSum()));
@@ -73,7 +71,7 @@ public class CheckZerosDailyDEUseCase {
         tracker.update(ParameterEnum.VLKW, isZero(record.getVLkwWeightedAvg()));
     }
 
-    private void updateDailyStatusFlags(DeDailyChartStatusRecord status,
+    private void updateDailyStatusFlags(DeDailyChartStatus status,
             Tracker tracker,
             int threshold) {
         if (tracker.getCount(ParameterEnum.QKFZ) >= threshold) {

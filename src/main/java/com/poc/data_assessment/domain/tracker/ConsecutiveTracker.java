@@ -1,6 +1,6 @@
-package com.poc.data_assessment.application.service.tracker;
+package com.poc.data_assessment.domain.tracker;
 
-import com.poc.data_assessment.domain.enums.ParameterEnum;
+import com.poc.data_assessment.domain.model.enums.ParameterEnum;
 
 import lombok.Getter;
 

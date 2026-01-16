@@ -9,12 +9,11 @@ import java.util.function.Function;
 
 import org.springframework.stereotype.Service;
 
-import com.poc.data_assessment.adapter.out.persistence.repository.DeSupportPointRepository;
-import com.poc.data_assessment.adapter.out.persistence.repository.MqSupportPointRepository;
-import com.poc.data_assessment.domain.enums.SupportPointStatus;
-import com.poc.data_assessment.domain.service.MqSupportPointService;
-import com.poc.jooq.generated.tables.records.DeSupportPoint_15mRecord;
-import com.poc.jooq.generated.tables.records.MqSupportPoint_15mRecord;
+import com.poc.data_assessment.application.port.out.DeSupportPointRepositoryPort;
+import com.poc.data_assessment.application.port.out.MqSupportPointRepositoryPort;
+import com.poc.data_assessment.domain.model.DeSupportPoint;
+import com.poc.data_assessment.domain.model.MqSupportPoint;
+import com.poc.data_assessment.domain.model.enums.SupportPointStatus;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,32 +22,31 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class UpsertMQSupportPointStatusUseCase {
-    private final MqSupportPointRepository mqSupportPointRepository;
-    private final DeSupportPointRepository deSupportPointRepository;
-    private final MqSupportPointService mqSupportPointService;
+    private final MqSupportPointRepositoryPort mqSupportPointRepository;
+    private final DeSupportPointRepositoryPort deSupportPointRepository;
 
     private enum MetricType {
-        Q_KFZ(DeSupportPoint_15mRecord::getQKfzStt, MqSupportPoint_15mRecord::setQKfzStt),
-        Q_LKW(DeSupportPoint_15mRecord::getQLkwStt, MqSupportPoint_15mRecord::setQLkwStt),
-        Q_PKW(DeSupportPoint_15mRecord::getQPkwStt, MqSupportPoint_15mRecord::setQPkwStt),
-        V_KFZ(DeSupportPoint_15mRecord::getVKfzStt, MqSupportPoint_15mRecord::setVKfzStt),
-        V_PKW(DeSupportPoint_15mRecord::getVPkwStt, MqSupportPoint_15mRecord::setVPkwStt),
-        V_LKW(DeSupportPoint_15mRecord::getVLkwStt, MqSupportPoint_15mRecord::setVLkwStt);
+        Q_KFZ(DeSupportPoint::getQKfzStt, MqSupportPoint::setQKfzStt),
+        Q_LKW(DeSupportPoint::getQLkwStt, MqSupportPoint::setQLkwStt),
+        Q_PKW(DeSupportPoint::getQPkwStt, MqSupportPoint::setQPkwStt),
+        V_KFZ(DeSupportPoint::getVKfzStt, MqSupportPoint::setVKfzStt),
+        V_PKW(DeSupportPoint::getVPkwStt, MqSupportPoint::setVPkwStt),
+        V_LKW(DeSupportPoint::getVLkwStt, MqSupportPoint::setVLkwStt);
 
-        private final Function<DeSupportPoint_15mRecord, Short> getter;
-        private final BiConsumer<MqSupportPoint_15mRecord, Short> setter;
+        private final Function<DeSupportPoint, Short> getter;
+        private final BiConsumer<MqSupportPoint, Short> setter;
 
-        MetricType(Function<DeSupportPoint_15mRecord, Short> getter,
-                BiConsumer<MqSupportPoint_15mRecord, Short> setter) {
+        MetricType(Function<DeSupportPoint, Short> getter,
+                BiConsumer<MqSupportPoint, Short> setter) {
             this.getter = getter;
             this.setter = setter;
         }
 
-        Short getStatus(DeSupportPoint_15mRecord record) {
+        Short getStatus(DeSupportPoint record) {
             return getter.apply(record);
         }
 
-        void setStatus(MqSupportPoint_15mRecord record, short status) {
+        void setStatus(MqSupportPoint record, short status) {
             setter.accept(record, status);
         }
     }
@@ -79,11 +77,13 @@ public class UpsertMQSupportPointStatusUseCase {
 
     public void execute(LocalDateTime timeBucket, String mqId) {
         List<String> permanentIds = deSupportPointRepository.findAllPermanentIdsByMqId(mqId);
-        List<DeSupportPoint_15mRecord> deSupportPoint_15mRecords = deSupportPointRepository
+        List<DeSupportPoint> deSupportPoint_15mRecords = deSupportPointRepository
                 .findAllDeSupportPointsByTime(timeBucket, permanentIds);
 
-        MqSupportPoint_15mRecord mqSupportPoint_15mRecord = mqSupportPointService.findOrCreateMqSupportPoint_15m(mqId,
-                timeBucket);
+        MqSupportPoint mqSupportPoint = mqSupportPointRepository.findByPermanentIdAndStartTime(mqId, timeBucket);
+        if (mqSupportPoint == null) {
+            mqSupportPoint = new MqSupportPoint(mqId, timeBucket);
+        }
 
         Map<MetricType, StatusCounts> metricCounts = new EnumMap<>(MetricType.class);
 
@@ -93,7 +93,7 @@ public class UpsertMQSupportPointStatusUseCase {
         }
 
         // Count statuses for each metric
-        for (DeSupportPoint_15mRecord record : deSupportPoint_15mRecords) {
+        for (DeSupportPoint record : deSupportPoint_15mRecords) {
             for (MetricType metric : MetricType.values()) {
                 metricCounts.get(metric).increment(metric.getStatus(record));
             }
@@ -102,9 +102,9 @@ public class UpsertMQSupportPointStatusUseCase {
         // Set aggregated status for each metric
         for (MetricType metric : MetricType.values()) {
             SupportPointStatus status = metricCounts.get(metric).determineStatus();
-            metric.setStatus(mqSupportPoint_15mRecord, (short) status.ordinal());
+            metric.setStatus(mqSupportPoint, (short) status.ordinal());
         }
 
-        mqSupportPointRepository.save(mqSupportPoint_15mRecord);
+        mqSupportPointRepository.save(mqSupportPoint);
     }
 }

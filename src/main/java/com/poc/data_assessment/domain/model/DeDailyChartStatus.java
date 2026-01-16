@@ -22,4 +22,21 @@ public class DeDailyChartStatus {
     private boolean vKfzZerosValid;
     private boolean vPkwZerosValid;
     private boolean vLkwZerosValid;
+
+    public DeDailyChartStatus(LocalDate dayDate, String permanentId) {
+        this.dayDate = dayDate;
+        this.permanentId = permanentId;
+        this.qKfzIsValid = false;
+        this.qLkwIsValid = false;
+        this.qPkwIsValid = false;
+        this.vKfzIsValid = false;
+        this.vPkwIsValid = false;
+        this.vLkwIsValid = false;
+        this.qKfzZerosValid = false;
+        this.qLkwZerosValid = false;
+        this.qPkwZerosValid = false;
+        this.vKfzZerosValid = false;
+        this.vPkwZerosValid = false;
+        this.vLkwZerosValid = false;
+    }
 }

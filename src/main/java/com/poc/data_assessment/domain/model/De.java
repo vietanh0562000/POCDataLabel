@@ -6,6 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class De {
-    private String permanentId;
-    private String de;
+    private String id;
+    private String name;
+    private String mqId;
 }

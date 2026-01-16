@@ -6,11 +6,11 @@ import java.util.function.Function;
 import org.springframework.stereotype.Service;
 
 import com.poc.data_assessment.adapter.in.broker.UpdateDeEvent;
-import com.poc.data_assessment.adapter.out.persistence.repository.DeSupportPointRepository;
-import com.poc.data_assessment.adapter.out.persistence.repository.TrafficShortTermDataRepository;
 import com.poc.data_assessment.application.dto.TrafficCountsProjection;
-import com.poc.data_assessment.domain.enums.SupportPointStatus;
-import com.poc.jooq.generated.tables.records.DeSupportPoint_15mRecord;
+import com.poc.data_assessment.application.port.out.DeSupportPointRepositoryPort;
+import com.poc.data_assessment.application.port.out.TrafficShortTermDataRepositoryPort;
+import com.poc.data_assessment.domain.model.DeSupportPoint;
+import com.poc.data_assessment.domain.model.enums.SupportPointStatus;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,11 +22,11 @@ public class UpsertDESupportPointStatusUseCase {
     private static final int MIN_DATA_COUNT = 15;
     private static final long TIME_WINDOW_SECONDS = 15 * 60L;
 
-    private final DeSupportPointRepository deSupportPointRepository;
-    private final TrafficShortTermDataRepository trafficShortTermDataRepository;
+    private final DeSupportPointRepositoryPort deSupportPointRepository;
+    private final TrafficShortTermDataRepositoryPort trafficShortTermDataRepository;
 
     public void execute(UpdateDeEvent event) {
-        DeSupportPoint_15mRecord supportPoint = findOrCreateSupportPoint(event);
+        DeSupportPoint supportPoint = findOrCreateSupportPoint(event);
 
         TrafficCountsProjection counts = trafficShortTermDataRepository.getTrafficCounts(
                 event.timeBucket(),
@@ -38,8 +38,8 @@ public class UpsertDESupportPointStatusUseCase {
         deSupportPointRepository.save(supportPoint);
     }
 
-    private DeSupportPoint_15mRecord findOrCreateSupportPoint(UpdateDeEvent event) {
-        DeSupportPoint_15mRecord supportPoint = deSupportPointRepository
+    private DeSupportPoint findOrCreateSupportPoint(UpdateDeEvent event) {
+        DeSupportPoint supportPoint = deSupportPointRepository
                 .findByPermanentIdAndStartTime(event.permanentId(), event.timeBucket());
 
         if (supportPoint == null) {
@@ -49,15 +49,15 @@ public class UpsertDESupportPointStatusUseCase {
         return supportPoint;
     }
 
-    private DeSupportPoint_15mRecord createNewSupportPoint(UpdateDeEvent event) {
-        DeSupportPoint_15mRecord supportPoint = new DeSupportPoint_15mRecord();
+    private DeSupportPoint createNewSupportPoint(UpdateDeEvent event) {
+        DeSupportPoint supportPoint = new DeSupportPoint();
         supportPoint.setPermanentId(event.permanentId());
         supportPoint.setStartTime(event.timeBucket());
         initializeAllMetricsToZero(supportPoint);
         return supportPoint;
     }
 
-    private void initializeAllMetricsToZero(DeSupportPoint_15mRecord supportPoint) {
+    private void initializeAllMetricsToZero(DeSupportPoint supportPoint) {
         supportPoint.setQKfzStt((short) 0);
         supportPoint.setQPkwStt((short) 0);
         supportPoint.setQLkwStt((short) 0);
@@ -66,48 +66,48 @@ public class UpsertDESupportPointStatusUseCase {
         supportPoint.setVLkwStt((short) 0);
     }
 
-    private void updateAllMetrics(DeSupportPoint_15mRecord supportPoint, TrafficCountsProjection counts) {
+    private void updateAllMetrics(DeSupportPoint supportPoint, TrafficCountsProjection counts) {
         updateMetric(supportPoint, counts,
-                DeSupportPoint_15mRecord::setQKfzStt,
+                DeSupportPoint::setQKfzStt,
                 TrafficCountsProjection::qKfzImplausible,
                 TrafficCountsProjection::qKfzMissing,
                 TrafficCountsProjection::qKfzTotal);
 
         updateMetric(supportPoint, counts,
-                DeSupportPoint_15mRecord::setQPkwStt,
+                DeSupportPoint::setQPkwStt,
                 TrafficCountsProjection::qPkwImplausible,
                 TrafficCountsProjection::qPkwMissing,
                 TrafficCountsProjection::qPkwTotal);
 
         updateMetric(supportPoint, counts,
-                DeSupportPoint_15mRecord::setQLkwStt,
+                DeSupportPoint::setQLkwStt,
                 TrafficCountsProjection::qLkwImplausible,
                 TrafficCountsProjection::qLkwMissing,
                 TrafficCountsProjection::qLkwTotal);
 
         updateMetric(supportPoint, counts,
-                DeSupportPoint_15mRecord::setVKfzStt,
+                DeSupportPoint::setVKfzStt,
                 TrafficCountsProjection::vKfzImplausible,
                 TrafficCountsProjection::vKfzMissing,
                 TrafficCountsProjection::vKfzTotal);
 
         updateMetric(supportPoint, counts,
-                DeSupportPoint_15mRecord::setVPkwStt,
+                DeSupportPoint::setVPkwStt,
                 TrafficCountsProjection::vPkwImplausible,
                 TrafficCountsProjection::vPkwMissing,
                 TrafficCountsProjection::vPkwTotal);
 
         updateMetric(supportPoint, counts,
-                DeSupportPoint_15mRecord::setVLkwStt,
+                DeSupportPoint::setVLkwStt,
                 TrafficCountsProjection::vLkwImplausible,
                 TrafficCountsProjection::vLkwMissing,
                 TrafficCountsProjection::vLkwTotal);
     }
 
     private void updateMetric(
-            DeSupportPoint_15mRecord supportPoint,
+            DeSupportPoint supportPoint,
             TrafficCountsProjection counts,
-            BiConsumer<DeSupportPoint_15mRecord, Short> setter,
+            BiConsumer<DeSupportPoint, Short> setter,
             Function<TrafficCountsProjection, Integer> implausibleGetter,
             Function<TrafficCountsProjection, Integer> missingGetter,
             Function<TrafficCountsProjection, Integer> totalGetter) {

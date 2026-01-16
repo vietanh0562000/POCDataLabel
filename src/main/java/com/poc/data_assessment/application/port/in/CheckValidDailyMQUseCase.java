@@ -9,17 +9,16 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.poc.data_assessment.adapter.out.persistence.repository.DailyLineChartMQRepository;
-import com.poc.data_assessment.adapter.out.persistence.repository.MqSupportPointRepository;
-import com.poc.data_assessment.application.service.tracker.ConsecutiveTracker;
-import com.poc.data_assessment.application.service.tracker.TotalTracker;
-import com.poc.data_assessment.application.service.tracker.Tracker;
+import com.poc.data_assessment.application.port.out.MqDailyChartRepositoryPort;
+import com.poc.data_assessment.application.port.out.MqSupportPointRepositoryPort;
 import com.poc.data_assessment.common.DataConst;
-import com.poc.data_assessment.domain.enums.ParameterEnum;
-import com.poc.data_assessment.domain.enums.SupportPointStatus;
-import com.poc.data_assessment.domain.service.MqDailyChartStatusService;
-import com.poc.jooq.generated.tables.records.MqDailyChartStatusRecord;
-import com.poc.jooq.generated.tables.records.MqSupportPoint_15mRecord;
+import com.poc.data_assessment.domain.model.MqDailyChartStatus;
+import com.poc.data_assessment.domain.model.MqSupportPoint;
+import com.poc.data_assessment.domain.model.enums.ParameterEnum;
+import com.poc.data_assessment.domain.model.enums.SupportPointStatus;
+import com.poc.data_assessment.domain.tracker.ConsecutiveTracker;
+import com.poc.data_assessment.domain.tracker.TotalTracker;
+import com.poc.data_assessment.domain.tracker.Tracker;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,25 +27,24 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class CheckValidDailyMQUseCase {
-    private final MqDailyChartStatusService mqDailyChartStatusService;
-    private final DailyLineChartMQRepository dailyLineChartMQRepository;
-    private final MqSupportPointRepository mqSupportPointRepository;
+    private final MqDailyChartRepositoryPort dailyLineChartMQRepository;
+    private final MqSupportPointRepositoryPort mqSupportPointRepository;
     private static final Duration EXPECTED_INTERVAL = Duration.ofMinutes(15);
     private static final int INTERVALS_PER_DAY = 96; // 24 hours * 4 intervals per hour
 
     public void execute(LocalDate date, String permanentId) {
-        List<MqSupportPoint_15mRecord> mqSupportPoints = mqSupportPointRepository.findAllByMqIdAndDate(permanentId,
+        List<MqSupportPoint> mqSupportPoints = mqSupportPointRepository.findAllByMqIdAndDate(permanentId,
                 date);
 
-        MqDailyChartStatusRecord dailyStatus = dailyLineChartMQRepository.findByDateAndPermanentId(date, permanentId);
+        MqDailyChartStatus dailyStatus = dailyLineChartMQRepository.findByDateAndPermanentId(date, permanentId);
 
         if (dailyStatus == null) {
-            dailyStatus = mqDailyChartStatusService.createMqDailyChartStatusRecord(date, permanentId);
+            dailyStatus = new MqDailyChartStatus(date, permanentId);
         }
 
         // Create a map for quick lookup of support points by time
-        Map<LocalDateTime, MqSupportPoint_15mRecord> supportPointMap = mqSupportPoints.stream()
-                .collect(Collectors.toMap(MqSupportPoint_15mRecord::getStartTime, sp -> sp));
+        Map<LocalDateTime, MqSupportPoint> supportPointMap = mqSupportPoints.stream()
+                .collect(Collectors.toMap(MqSupportPoint::getStartTime, sp -> sp));
 
         Tracker consecutiveTracker = new ConsecutiveTracker();
         Tracker totalTracker = new TotalTracker();
@@ -55,7 +53,7 @@ public class CheckValidDailyMQUseCase {
         LocalDateTime currentTime = date.atStartOfDay();
 
         for (int i = 0; i < INTERVALS_PER_DAY; i++) {
-            MqSupportPoint_15mRecord mqSupportPoint = supportPointMap.get(currentTime);
+            MqSupportPoint mqSupportPoint = supportPointMap.get(currentTime);
 
             if (mqSupportPoint == null) {
                 // Missing interval - reset consecutive tracker and treat as invalid
@@ -80,7 +78,7 @@ public class CheckValidDailyMQUseCase {
         dailyLineChartMQRepository.save(dailyStatus);
     }
 
-    private void updateTrackerCounts(MqSupportPoint_15mRecord record,
+    private void updateTrackerCounts(MqSupportPoint record,
             Tracker tracker) {
         tracker.update(ParameterEnum.QKFZ, isInValid(record.getQKfzStt()));
         tracker.update(ParameterEnum.QLKW, isInValid(record.getQLkwStt()));
@@ -99,7 +97,7 @@ public class CheckValidDailyMQUseCase {
         tracker.update(ParameterEnum.VLKW, true);
     }
 
-    private void updateDailyStatusFlags(MqDailyChartStatusRecord status,
+    private void updateDailyStatusFlags(MqDailyChartStatus status,
             Tracker tracker, int threshold) {
         if (tracker.getCount(ParameterEnum.QKFZ) >= threshold) {
             status.setQKfzIsValid(false);

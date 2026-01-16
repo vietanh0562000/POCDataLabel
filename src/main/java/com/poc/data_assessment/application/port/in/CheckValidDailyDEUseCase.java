@@ -10,17 +10,16 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.poc.data_assessment.adapter.out.persistence.repository.DailyLineChartDERepository;
-import com.poc.data_assessment.adapter.out.persistence.repository.DeSupportPointRepository;
-import com.poc.data_assessment.application.service.tracker.ConsecutiveTracker;
-import com.poc.data_assessment.application.service.tracker.TotalTracker;
-import com.poc.data_assessment.application.service.tracker.Tracker;
+import com.poc.data_assessment.application.port.out.DeDailyChartRepositoryPort;
+import com.poc.data_assessment.application.port.out.DeSupportPointRepositoryPort;
 import com.poc.data_assessment.common.DataConst;
-import com.poc.data_assessment.domain.enums.ParameterEnum;
-import com.poc.data_assessment.domain.enums.SupportPointStatus;
-import com.poc.data_assessment.domain.service.DeDailyChartStatusService;
-import com.poc.jooq.generated.tables.records.DeDailyChartStatusRecord;
-import com.poc.jooq.generated.tables.records.DeSupportPoint_15mRecord;
+import com.poc.data_assessment.domain.model.DeSupportPoint;
+import com.poc.data_assessment.domain.model.enums.ParameterEnum;
+import com.poc.data_assessment.domain.model.enums.SupportPointStatus;
+import com.poc.data_assessment.domain.model.DeDailyChartStatus;
+import com.poc.data_assessment.domain.tracker.ConsecutiveTracker;
+import com.poc.data_assessment.domain.tracker.TotalTracker;
+import com.poc.data_assessment.domain.tracker.Tracker;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,25 +28,24 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class CheckValidDailyDEUseCase {
-    private final DeDailyChartStatusService deDailyChartStatusService;
-    private final DailyLineChartDERepository dailyLineChartDERepository;
-    private final DeSupportPointRepository deSupportPointRepository;
+    private final DeDailyChartRepositoryPort dailyLineChartDERepository;
+    private final DeSupportPointRepositoryPort deSupportPointRepository;
     private static final Duration EXPECTED_INTERVAL = Duration.ofMinutes(15);
     private static final int INTERVALS_PER_DAY = 96; // 24 hours * 4 intervals per hour
 
     public void execute(LocalDate date, String permanentId) {
-        List<DeSupportPoint_15mRecord> deSupportPoints = deSupportPointRepository
+        List<DeSupportPoint> deSupportPoints = deSupportPointRepository
                 .findAllDeSupportPointsByDateAndPermanentId(date, permanentId);
 
-        DeDailyChartStatusRecord dailyStatus = dailyLineChartDERepository.findByDateAndPermanentId(date, permanentId);
+        DeDailyChartStatus dailyStatus = dailyLineChartDERepository.findByDateAndPermanentId(date, permanentId);
 
         if (dailyStatus == null) {
-            dailyStatus = deDailyChartStatusService.createDeDailyChartStatusRecord(date, permanentId);
+            dailyStatus = new DeDailyChartStatus(date, permanentId);
         }
 
         // Create a map for quick lookup of support points by time
-        Map<LocalDateTime, DeSupportPoint_15mRecord> supportPointMap = deSupportPoints.stream()
-                .collect(Collectors.toMap(DeSupportPoint_15mRecord::getStartTime, sp -> sp));
+        Map<LocalDateTime, DeSupportPoint> supportPointMap = deSupportPoints.stream()
+                .collect(Collectors.toMap(DeSupportPoint::getStartTime, sp -> sp));
 
         Tracker consecutiveTracker = new ConsecutiveTracker();
         Tracker totalTracker = new TotalTracker();
@@ -56,7 +54,7 @@ public class CheckValidDailyDEUseCase {
         LocalDateTime currentTime = date.atStartOfDay();
 
         for (int i = 0; i < INTERVALS_PER_DAY; i++) {
-            DeSupportPoint_15mRecord deSupportPoint = supportPointMap.get(currentTime);
+            DeSupportPoint deSupportPoint = supportPointMap.get(currentTime);
 
             if (deSupportPoint == null) {
                 addInvalidToTracker(consecutiveTracker);
@@ -79,7 +77,7 @@ public class CheckValidDailyDEUseCase {
         dailyLineChartDERepository.save(dailyStatus);
     }
 
-    private void updateTrackerCounts(DeSupportPoint_15mRecord record,
+    private void updateTrackerCounts(DeSupportPoint record,
             Tracker tracker) {
         tracker.update(ParameterEnum.QKFZ, isInValid(record.getQKfzStt()));
         tracker.update(ParameterEnum.QLKW, isInValid(record.getQLkwStt()));
@@ -98,7 +96,7 @@ public class CheckValidDailyDEUseCase {
         tracker.update(ParameterEnum.VLKW, true);
     }
 
-    private void updateDailyStatusFlags(DeDailyChartStatusRecord status,
+    private void updateDailyStatusFlags(DeDailyChartStatus status,
             Tracker tracker, int threshold) {
         if (tracker.getCount(ParameterEnum.QKFZ) >= threshold) {
             status.setQKfzIsValid(false);

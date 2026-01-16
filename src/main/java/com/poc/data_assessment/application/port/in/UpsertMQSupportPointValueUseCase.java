@@ -8,14 +8,14 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.poc.data_assessment.adapter.out.persistence.repository.DeRepository;
-import com.poc.data_assessment.adapter.out.persistence.repository.MqAggregate15mRepository;
-import com.poc.data_assessment.adapter.out.persistence.repository.TrafficAggregateData15mRepository;
 import com.poc.data_assessment.application.dto.SpeedMqSupportPointDTO;
 import com.poc.data_assessment.application.dto.VolumeMqSupportPointDTO;
-import com.poc.jooq.generated.tables.records.DeRecord;
-import com.poc.jooq.generated.tables.records.MqAggregate_15mRecord;
-import com.poc.jooq.generated.tables.records.TrafficAggregatedData_15mRecord;
+import com.poc.data_assessment.application.port.out.DeRepositoryPort;
+import com.poc.data_assessment.application.port.out.MqAggregate15mRepositoryPort;
+import com.poc.data_assessment.application.port.out.TrafficAggregateData15mRepositoryPort;
+import com.poc.data_assessment.domain.model.De;
+import com.poc.data_assessment.domain.model.MqAggregate15m;
+import com.poc.data_assessment.domain.model.TrafficAggregatedData15m;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,17 +24,17 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class UpsertMQSupportPointValueUseCase {
-    private final DeRepository deRepository;
-    private final TrafficAggregateData15mRepository trafficAggregateData15mRepository;
-    private final MqAggregate15mRepository mqAggregate_15mRepository;
+    private final DeRepositoryPort deRepository;
+    private final TrafficAggregateData15mRepositoryPort trafficAggregateData15mRepository;
+    private final MqAggregate15mRepositoryPort mqAggregate_15mRepository;
 
     public void execute(LocalDateTime timeBucket, String mqId) {
-        List<DeRecord> deRecords = deRepository.findAllDEsByMQId(mqId);
+        List<De> deRecords = deRepository.findAllDEsByMQId(mqId);
         List<String> deIds = deRecords.stream()
-                .map(DeRecord::getId)
+                .map(De::getId)
                 .collect(Collectors.toList());
 
-        List<TrafficAggregatedData_15mRecord> trafficAggregatedData15mRecords = trafficAggregateData15mRepository
+        List<TrafficAggregatedData15m> trafficAggregatedData15mRecords = trafficAggregateData15mRepository
                 .findAllByDateAndPermanentId(timeBucket,
                         deIds);
 
@@ -89,16 +89,14 @@ public class UpsertMQSupportPointValueUseCase {
             speedMqSupportPointDTO.vPkw = 0.0;
         }
 
-        MqAggregate_15mRecord mqAggregate_15mRecord = mqAggregate_15mRepository
-                .findByMqIdAndTimeBucket(mqId, timeBucket).orElse(new MqAggregate_15mRecord());
-        mqAggregate_15mRecord.setMqId(mqId);
-        mqAggregate_15mRecord.setTimeBucket(timeBucket);
-        mqAggregate_15mRecord.setQKfzSum(volumeMqSupportPointDTO.qKfz.intValue());
-        mqAggregate_15mRecord.setQLkwSum(volumeMqSupportPointDTO.qLkw.intValue());
-        mqAggregate_15mRecord.setQPkwSum(volumeMqSupportPointDTO.qPkw.intValue());
-        mqAggregate_15mRecord.setVKfzWeightedAvg(BigDecimal.valueOf(speedMqSupportPointDTO.vKfz));
-        mqAggregate_15mRecord.setVLkwWeightedAvg(BigDecimal.valueOf(speedMqSupportPointDTO.vLkw));
-        mqAggregate_15mRecord.setVPkwWeightedAvg(BigDecimal.valueOf(speedMqSupportPointDTO.vPkw));
+        MqAggregate15m mqAggregate_15mRecord = mqAggregate_15mRepository
+                .findByMqIdAndTimeBucket(mqId, timeBucket).orElse(new MqAggregate15m(mqId, timeBucket));
+        mqAggregate_15mRecord.setQKfzSum(volumeMqSupportPointDTO.qKfz);
+        mqAggregate_15mRecord.setQLkwSum(volumeMqSupportPointDTO.qLkw);
+        mqAggregate_15mRecord.setQPkwSum(volumeMqSupportPointDTO.qPkw);
+        mqAggregate_15mRecord.setVKfzWeightedAvg(speedMqSupportPointDTO.vKfz);
+        mqAggregate_15mRecord.setVLkwWeightedAvg(speedMqSupportPointDTO.vLkw);
+        mqAggregate_15mRecord.setVPkwWeightedAvg(speedMqSupportPointDTO.vPkw);
         mqAggregate_15mRecord.setCreatedAt(LocalDateTime.now());
         mqAggregate_15mRecord.setUpdatedAt(LocalDateTime.now());
 

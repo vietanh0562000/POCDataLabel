@@ -1,4 +1,4 @@
-package com.poc.data_assessment.domain.enums;
+package com.poc.data_assessment.domain.model.enums;
 
 public enum ParameterEnum {
     QKFZ,

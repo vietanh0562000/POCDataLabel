@@ -2,6 +2,9 @@ package com.poc.data_assessment.adapter.out.persistence.repository;
 
 import org.springframework.stereotype.Repository;
 
+import com.poc.data_assessment.adapter.out.persistence.mapper.MqSupportPointMapper;
+import com.poc.data_assessment.application.port.out.MqSupportPointRepositoryPort;
+import com.poc.data_assessment.domain.model.MqSupportPoint;
 import com.poc.jooq.generated.tables.records.MqSupportPoint_15mRecord;
 import static com.poc.jooq.generated.tables.MqSupportPoint_15m.MQ_SUPPORT_POINT_15M;
 
@@ -9,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.jooq.DSLContext;
 
@@ -18,27 +22,35 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class MqSupportPointRepository {
+public class MqSupportPointRepository implements MqSupportPointRepositoryPort {
     private final DSLContext dsl;
+    private final MqSupportPointMapper mqSupportPointMapper;
 
-    public List<MqSupportPoint_15mRecord> findAllByMqIdAndDate(String mqId, LocalDate date) {
+    @Override
+    public List<MqSupportPoint> findAllByMqIdAndDate(String mqId, LocalDate date) {
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay = date.plusDays(1).atStartOfDay().minusNanos(1);
 
         return dsl.selectFrom(MQ_SUPPORT_POINT_15M)
                 .where(MQ_SUPPORT_POINT_15M.PERMANENT_ID.eq(mqId))
                 .and(MQ_SUPPORT_POINT_15M.START_TIME.between(startOfDay, endOfDay))
-                .fetch();
+                .fetchInto(MqSupportPoint_15mRecord.class)
+                .stream()
+                .map(mqSupportPointMapper::mapToMqSupportPoint)
+                .collect(Collectors.toList());
     }
 
-    public MqSupportPoint_15mRecord findByPermanentIdAndStartTime(String permanentId, LocalDateTime startTime) {
-        return dsl.selectFrom(MQ_SUPPORT_POINT_15M)
+    @Override
+    public MqSupportPoint findByPermanentIdAndStartTime(String permanentId, LocalDateTime startTime) {
+        var record = dsl.selectFrom(MQ_SUPPORT_POINT_15M)
                 .where(MQ_SUPPORT_POINT_15M.PERMANENT_ID.eq(permanentId))
                 .and(MQ_SUPPORT_POINT_15M.START_TIME.eq(startTime))
-                .fetchOne();
+                .fetchOneInto(MqSupportPoint_15mRecord.class);
+        return mqSupportPointMapper.mapToMqSupportPoint(record);
     }
 
-    public void save(MqSupportPoint_15mRecord record) {
+    @Override
+    public void save(MqSupportPoint record) {
 
         Objects.requireNonNull(record.getStartTime(), "startTime must not be null");
         Objects.requireNonNull(record.getPermanentId(), "permanentId must not be null");

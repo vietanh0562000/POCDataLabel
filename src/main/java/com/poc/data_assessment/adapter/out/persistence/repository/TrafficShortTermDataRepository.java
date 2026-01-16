@@ -2,6 +2,7 @@ package com.poc.data_assessment.adapter.out.persistence.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,18 +11,26 @@ import org.springframework.stereotype.Repository;
 import static com.poc.jooq.generated.tables.TrafficShortTermData.TRAFFIC_SHORT_TERM_DATA;
 import static org.jooq.impl.DSL.*;
 
+import com.poc.data_assessment.adapter.out.persistence.mapper.TrafficShortTermMapper;
 import com.poc.data_assessment.application.dto.TrafficCountsProjection;
+import com.poc.data_assessment.application.port.out.TrafficShortTermDataRepositoryPort;
+import com.poc.data_assessment.domain.model.TrafficShortTermData;
 import com.poc.jooq.generated.tables.records.TrafficShortTermDataRecord;
 
 @Repository
-public class TrafficShortTermDataRepository {
+public class TrafficShortTermDataRepository implements TrafficShortTermDataRepositoryPort {
         @Autowired
         private DSLContext dsl;
 
-        public List<TrafficShortTermDataRecord> findAllTrafficShortTermData() {
-                return dsl.selectFrom(TRAFFIC_SHORT_TERM_DATA).fetch();
+        @Override
+        public List<TrafficShortTermData> findAll() {
+                return dsl.selectFrom(TRAFFIC_SHORT_TERM_DATA).fetchInto(TrafficShortTermDataRecord.class)
+                                .stream()
+                                .map(TrafficShortTermMapper::mapToTrafficShortTermData)
+                                .collect(Collectors.toList());
         }
 
+        @Override
         public TrafficCountsProjection getTrafficCounts(LocalDateTime startTime, Long duration, String permanentId) {
                 LocalDateTime endTime = startTime.plusSeconds(duration);
 

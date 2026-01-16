@@ -2,7 +2,7 @@ package com.poc.data_assessment.application.dto;
 
 import java.time.LocalDateTime;
 
-import com.poc.data_assessment.domain.enums.SupportPointStatus;
+import com.poc.data_assessment.domain.model.enums.SupportPointStatus;
 import com.poc.jooq.generated.tables.records.DeSupportPoint_15mRecord;
 
 public record DeSupportPointDTO(

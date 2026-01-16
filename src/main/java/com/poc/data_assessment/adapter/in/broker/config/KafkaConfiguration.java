@@ -1,4 +1,4 @@
-package com.poc.data_assessment.config;
+package com.poc.data_assessment.adapter.in.broker.config;
 
 import java.util.HashMap;
 import java.util.Map;
